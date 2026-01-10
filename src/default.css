@@ -1,0 +1,10 @@
+window {
+	background-color: rgba(0, 0, 0, 0.625);
+	border: 4px solid rgba(71, 200, 192, 1);
+	padding: 4px;
+}
+
+label {
+	color: white;
+	text-shadow: 0px 0px 2px rgb(71, 200, 192), 0px 0px 2px rgb(71, 200, 192);
+}
