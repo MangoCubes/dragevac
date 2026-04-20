@@ -4,13 +4,20 @@ use std::path::PathBuf;
 
 #[derive(Deserialize, Debug)]
 pub struct Config {
+    /// CSS for the surface
     pub css: String,
+    /// Text to show when there are no entries
+    pub empty_text: String,
+    /// Keep [`Config::empty_text`] even if there are entries in the list
+    pub keep_text: bool,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
             css: include_str!("./default.css").to_string(),
+            empty_text: "Drop items here".to_string(),
+            keep_text: false,
         }
     }
 }
