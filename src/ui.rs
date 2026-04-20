@@ -1,7 +1,12 @@
 use gtk4::CssProvider;
 use gtk4::gdk::Display;
+use gtk4::gdk::Key;
+use gtk4::gio::prelude::ApplicationExt;
+use gtk4::glib::Propagation;
 use gtk4::prelude::GtkWindowExt;
-use gtk4::{Application, ApplicationWindow};
+use gtk4::prelude::WidgetExt;
+use gtk4::{Application, ApplicationWindow, EventControllerKey};
+use gtk4_layer_shell::KeyboardMode;
 use gtk4_layer_shell::{Layer, LayerShell};
 
 use crate::config::Config;
@@ -14,6 +19,7 @@ pub fn build_ui(app: &Application, config: &Config) {
 
     window.init_layer_shell();
     window.set_layer(Layer::Top);
+    window.set_keyboard_mode(KeyboardMode::OnDemand);
 
     let base_provider = CssProvider::new();
     base_provider.load_from_data(&config.css);
@@ -24,6 +30,20 @@ pub fn build_ui(app: &Application, config: &Config) {
         gtk4::STYLE_PROVIDER_PRIORITY_APPLICATION,
     );
 
+    let key_controller = EventControllerKey::new();
+    let a = app.clone();
+
+    key_controller.connect_key_pressed(move |_, keyval, _, _| {
+        // Quit on Escape
+        if keyval == Key::Escape {
+            a.quit();
+            Propagation::Stop
+        } else {
+            Propagation::Proceed
+        }
+    });
+
+    window.add_controller(key_controller);
     let label = gtk4::Label::new(Some("Place items here"));
     window.set_child(Some(&label));
 
