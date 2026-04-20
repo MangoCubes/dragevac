@@ -4,7 +4,9 @@ use gtk4::prelude::GtkWindowExt;
 use gtk4::{Application, ApplicationWindow};
 use gtk4_layer_shell::{Layer, LayerShell};
 
-pub fn build_ui(app: &Application) {
+use crate::config::Config;
+
+pub fn build_ui(app: &Application, config: &Config) {
     let window = ApplicationWindow::builder()
         .application(app)
         .title("DragBox")
@@ -14,7 +16,7 @@ pub fn build_ui(app: &Application) {
     window.set_layer(Layer::Top);
 
     let base_provider = CssProvider::new();
-    base_provider.load_from_data(include_str!("./default.css"));
+    base_provider.load_from_data(&config.css);
     let display = Display::default().unwrap();
     gtk4::style_context_add_provider_for_display(
         &display,
