@@ -15,6 +15,7 @@ use gtk4_layer_shell::{KeyboardMode, Layer, LayerShell};
 
 use crate::config::load_config;
 use crate::ui::dropitem::DropItem;
+use crate::{debug, error};
 
 pub fn build_ui(app: &Application) {
     let config = load_config();
@@ -81,7 +82,7 @@ pub fn build_ui(app: &Application) {
 
         if is_file {
             // Dropped item is a list of files
-            println!("File drop detected.");
+            debug!("File drop detected.");
             drop.read_value_async(
                 gdk::FileList::static_type(),
                 glib::Priority::DEFAULT,
@@ -115,14 +116,14 @@ pub fn build_ui(app: &Application) {
                         drop_ref2.finish(DragAction::COPY);
                     }
                     Err(err) => {
-                        println!("Failed to read dropped files: {err}");
+                        error!("Failed to read dropped files: {err}");
                         drop_ref2.finish(DragAction::empty());
                     }
                 },
             );
         } else {
             // Dropped item is text
-            println!("Text drop detected.");
+            debug!("Text drop detected.");
             drop.read_value_async(
                 glib::Type::STRING,
                 glib::Priority::DEFAULT,
@@ -153,7 +154,7 @@ pub fn build_ui(app: &Application) {
                         drop_ref2.finish(DragAction::COPY);
                     }
                     Err(err) => {
-                        println!("Failed to read dropped text: {err}");
+                        error!("Failed to read dropped text: {err}");
                         drop_ref2.finish(DragAction::empty());
                     }
                 },

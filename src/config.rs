@@ -2,6 +2,8 @@ use serde::Deserialize;
 use std::fs;
 use std::path::PathBuf;
 
+use crate::error;
+
 #[derive(Deserialize, Debug)]
 pub struct Config {
     /// CSS for the surface
@@ -27,14 +29,14 @@ fn get_config_dir() -> Option<PathBuf> {
         PathBuf::from(match env::var("XDG_CONFIG_HOME") {
             Ok(home) => home,
             Err(e) => {
-                println!(
+                error!(
                     "Failed go get XDG_CONFIG_HOME ({}). Falling back to HOME.",
                     e.to_string()
                 );
                 if let Ok(p) = env::var("XDG_CONFIG_HOME") {
                     p
                 } else {
-                    println!(
+                    error!(
                         "Failed go get HOME ({}). Using default config.",
                         e.to_string()
                     );
