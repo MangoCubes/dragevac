@@ -13,12 +13,14 @@ use gtk4::{
 };
 use gtk4_layer_shell::{Edge, KeyboardMode, Layer, LayerShell};
 
+use std::path::Path;
+
 use crate::config::load_config;
 use crate::ui::dropitem::DropItem;
 use crate::{debug, error};
 
-pub fn build_ui(app: &Application) {
-    let config = load_config();
+pub fn build_ui(app: &Application, config_path: Option<&Path>) {
+    let config = load_config(config_path);
     let window = ApplicationWindow::builder()
         .application(app)
         .title("DragBox")

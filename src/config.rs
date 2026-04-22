@@ -1,6 +1,6 @@
 use serde::Deserialize;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::error;
 
@@ -64,36 +64,45 @@ impl Config {
 }
 
 fn get_config_dir() -> Option<PathBuf> {
-    Some(
-        PathBuf::from(match env::var("XDG_CONFIG_HOME") {
-            Ok(home) => home,
-            Err(e) => {
+    Some(PathBuf::from(match env::var("XDG_CONFIG_HOME") {
+        Ok(home) => home,
+        Err(e) => {
+            error!(
+                "Failed go get XDG_CONFIG_HOME ({}). Falling back to HOME.",
+                e.to_string()
+            );
+            if let Ok(p) = env::var("XDG_CONFIG_HOME") {
+                p
+            } else {
                 error!(
-                    "Failed go get XDG_CONFIG_HOME ({}). Falling back to HOME.",
+                    "Failed go get HOME ({}). Using default config.",
                     e.to_string()
                 );
-                if let Ok(p) = env::var("XDG_CONFIG_HOME") {
-                    p
-                } else {
-                    error!(
-                        "Failed go get HOME ({}). Using default config.",
-                        e.to_string()
-                    );
-                    return None;
-                }
+                return None;
             }
-        })
-        .join(".config"),
-    )
+        }
+    }))
 }
 
-pub fn load_config() -> Config {
-    let Some(config_path) = get_config_dir() else {
-        return Config::default();
+pub fn load_config(config_path: Option<&Path>) -> Config {
+    let path = match config_path {
+        Some(p) => p.to_path_buf(),
+        None => {
+            let Some(dir) = get_config_dir() else {
+                return Config::default();
+            };
+            dir.join("dragbox/config.json")
+        }
     };
 
-    fs::read_to_string(config_path.join("dragbox/config.json"))
+    fs::read_to_string(&path)
         .ok()
         .and_then(|c| serde_json::from_str(&c).ok())
-        .unwrap_or_default()
+        .unwrap_or_else(|| {
+            error!(
+                "Failed to find config file at '{:?}'. Falling back to default config.",
+                path.to_str()
+            );
+            Config::default()
+        })
 }
