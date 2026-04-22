@@ -49,10 +49,13 @@ pub fn build_ui(app: &Application, config_path: Option<&Path>) {
 
     let key_controller = EventControllerKey::new();
     let a = app.clone();
+    let w = window.clone();
 
     key_controller.connect_key_pressed(move |_, keyval, _, _| {
         // Quit on Escape
         if keyval == Key::Escape {
+            w.set_visible(false);
+            w.set_sensitive(false);
             a.quit();
             Propagation::Stop
         } else {
