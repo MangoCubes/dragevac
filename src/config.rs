@@ -29,6 +29,9 @@ pub struct Config {
     pub keep_text: bool,
     /// Where to anchor the surface on the screen
     pub anchor: Anchor,
+    /// Expand along the anchored edge. Available only if user selected Top/Bottom/Left/Right for
+    /// [`Config::anchor`].
+    pub expand: bool,
 }
 
 impl Default for Config {
@@ -38,6 +41,24 @@ impl Default for Config {
             empty_text: "Drop items here".to_string(),
             keep_text: true,
             anchor: Anchor::default(),
+            expand: false,
+        }
+    }
+}
+
+impl Config {
+    pub fn get_edges(&self) -> (bool, bool, bool, bool) {
+        let expand = self.expand;
+        match self.anchor {
+            Anchor::Top => (true, false, expand, expand),
+            Anchor::Bottom => (false, true, expand, expand),
+            Anchor::Left => (expand, expand, true, false),
+            Anchor::Right => (expand, expand, false, true),
+            Anchor::TopLeft => (true, false, true, false),
+            Anchor::TopRight => (true, false, false, true),
+            Anchor::BottomLeft => (false, true, true, false),
+            Anchor::BottomRight => (false, true, false, true),
+            Anchor::Center => (false, false, false, false),
         }
     }
 }

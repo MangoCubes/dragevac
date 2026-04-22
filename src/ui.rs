@@ -13,7 +13,7 @@ use gtk4::{
 };
 use gtk4_layer_shell::{Edge, KeyboardMode, Layer, LayerShell};
 
-use crate::config::{Anchor, load_config};
+use crate::config::load_config;
 use crate::ui::dropitem::DropItem;
 use crate::{debug, error};
 
@@ -30,17 +30,7 @@ pub fn build_ui(app: &Application) {
     window.set_layer(Layer::Top);
     window.set_keyboard_mode(KeyboardMode::OnDemand);
 
-    let (top, bottom, left, right) = match config.anchor {
-        Anchor::Top => (true, false, false, false),
-        Anchor::Bottom => (false, true, false, false),
-        Anchor::Left => (false, false, true, false),
-        Anchor::Right => (false, false, false, true),
-        Anchor::TopLeft => (true, false, true, false),
-        Anchor::TopRight => (true, false, false, true),
-        Anchor::BottomLeft => (false, true, true, false),
-        Anchor::BottomRight => (false, true, false, true),
-        Anchor::Center => (false, false, false, false),
-    };
+    let (top, bottom, left, right) = config.get_edges();
     window.set_anchor(Edge::Top, top);
     window.set_anchor(Edge::Bottom, bottom);
     window.set_anchor(Edge::Left, left);
