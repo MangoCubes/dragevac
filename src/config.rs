@@ -17,7 +17,7 @@ impl Default for Config {
         Self {
             css: include_str!("./default.css").to_string(),
             empty_text: "Drop items here".to_string(),
-            keep_text: false,
+            keep_text: true,
         }
     }
 }
