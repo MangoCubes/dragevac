@@ -1,10 +1,10 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::error;
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum Anchor {
     Top,
@@ -19,7 +19,7 @@ pub enum Anchor {
     Center,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
     /// CSS for the surface
     pub css: String,
@@ -29,7 +29,7 @@ pub struct Config {
     pub keep_text: bool,
     /// Where to anchor the surface on the screen
     pub anchor: Anchor,
-    /// Expand along the anchored edge. Available only if user selected Top/Bottom/Left/Right for
+    /// Expand along the anchored edge. Applicable only if user selected top/bottom/left/right for
     /// [`Config::anchor`].
     pub expand: bool,
 }
@@ -84,15 +84,16 @@ fn get_config_dir() -> Option<PathBuf> {
     }))
 }
 
+pub fn get_config_path(config_path: Option<&Path>) -> Option<PathBuf> {
+    match config_path {
+        Some(p) => Some(p.to_path_buf()),
+        None => Some(get_config_dir()?.join("dragbox/config.json")),
+    }
+}
+
 pub fn load_config(config_path: Option<&Path>) -> Config {
-    let path = match config_path {
-        Some(p) => p.to_path_buf(),
-        None => {
-            let Some(dir) = get_config_dir() else {
-                return Config::default();
-            };
-            dir.join("dragbox/config.json")
-        }
+    let Some(path) = get_config_path(config_path) else {
+        return Config::default();
     };
 
     fs::read_to_string(&path)
@@ -105,4 +106,31 @@ pub fn load_config(config_path: Option<&Path>) -> Config {
             );
             Config::default()
         })
+}
+
+pub fn write_config(config_path: Option<&Path>) {
+    let Some(path) = get_config_path(config_path) else {
+        error!("Could not determine config path.");
+        return;
+    };
+
+    let config = load_config(config_path);
+
+    if let Some(parent) = path.parent() {
+        if let Err(e) = fs::create_dir_all(parent) {
+            error!("Failed to create config directory: {}", e);
+            return;
+        }
+    }
+
+    match serde_json::to_string_pretty(&config) {
+        Ok(json) => {
+            if let Err(e) = fs::write(&path, json) {
+                error!("Failed to write config file: {}", e);
+            } else {
+                println!("Config written to {:?}", path);
+            }
+        }
+        Err(e) => error!("Failed to serialize config: {}", e),
+    }
 }

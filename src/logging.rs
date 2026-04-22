@@ -14,7 +14,7 @@ pub fn is_verbose() -> bool {
 macro_rules! debug {
     ($($arg:tt)*) => {
         if $crate::logging::is_verbose() {
-            println!($($arg)*);
+            println!($($arg)*)
         }
     };
 }
@@ -22,6 +22,6 @@ macro_rules! debug {
 #[macro_export]
 macro_rules! error {
     ($($arg:tt)*) => {
-        eprintln!($($arg)*);
+        eprintln!($($arg)*)
     };
 }

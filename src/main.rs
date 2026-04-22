@@ -4,7 +4,7 @@ mod ui;
 
 use std::path::PathBuf;
 
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use gtk4::{
     Application,
     gio::prelude::{ApplicationExt, ApplicationExtManual},
@@ -25,6 +25,16 @@ struct Args {
     /// Path to config file
     #[arg(short, long)]
     config: Option<PathBuf>,
+
+    #[command(subcommand)]
+    command: Option<Command>,
+}
+
+#[derive(Subcommand)]
+enum Command {
+    /// Writes default config. If config already exists, this will fill out missing fields, delete
+    /// invalid fields, and write the result back.
+    Config,
 }
 
 fn main() {
@@ -33,11 +43,18 @@ fn main() {
 
     let config_path = args.config;
 
-    let app = Application::builder()
-        .application_id("ch.skew.dragbox")
-        .build();
+    match args.command {
+        Some(Command::Config) => {
+            config::write_config(config_path.as_deref());
+        }
+        None => {
+            let app = Application::builder()
+                .application_id("ch.skew.dragbox")
+                .build();
 
-    app.connect_activate(move |app| build_ui(app, config_path.as_deref()));
+            app.connect_activate(move |app| build_ui(app, config_path.as_deref()));
 
-    app.run_with_args::<String>(&[]);
+            app.run_with_args::<String>(&[]);
+        }
+    }
 }
