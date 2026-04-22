@@ -4,6 +4,21 @@ use std::path::PathBuf;
 
 use crate::error;
 
+#[derive(Deserialize, Debug, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum Anchor {
+    Top,
+    Bottom,
+    Left,
+    Right,
+    TopLeft,
+    TopRight,
+    BottomLeft,
+    BottomRight,
+    #[default]
+    Center,
+}
+
 #[derive(Deserialize, Debug)]
 pub struct Config {
     /// CSS for the surface
@@ -12,6 +27,8 @@ pub struct Config {
     pub empty_text: String,
     /// Keep [`Config::empty_text`] even if there are entries in the list
     pub keep_text: bool,
+    /// Where to anchor the surface on the screen
+    pub anchor: Anchor,
 }
 
 impl Default for Config {
@@ -20,6 +37,7 @@ impl Default for Config {
             css: include_str!("./default.css").to_string(),
             empty_text: "Drop items here".to_string(),
             keep_text: true,
+            anchor: Anchor::default(),
         }
     }
 }

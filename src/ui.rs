@@ -11,9 +11,9 @@ use gtk4::{
     Application, ApplicationWindow, CssProvider, DragSource, DropTargetAsync, EventControllerKey,
     Label, ListBox, Orientation,
 };
-use gtk4_layer_shell::{KeyboardMode, Layer, LayerShell};
+use gtk4_layer_shell::{Edge, KeyboardMode, Layer, LayerShell};
 
-use crate::config::load_config;
+use crate::config::{Anchor, load_config};
 use crate::ui::dropitem::DropItem;
 use crate::{debug, error};
 
@@ -29,6 +29,22 @@ pub fn build_ui(app: &Application) {
     window.init_layer_shell();
     window.set_layer(Layer::Top);
     window.set_keyboard_mode(KeyboardMode::OnDemand);
+
+    let (top, bottom, left, right) = match config.anchor {
+        Anchor::Top => (true, false, false, false),
+        Anchor::Bottom => (false, true, false, false),
+        Anchor::Left => (false, false, true, false),
+        Anchor::Right => (false, false, false, true),
+        Anchor::TopLeft => (true, false, true, false),
+        Anchor::TopRight => (true, false, false, true),
+        Anchor::BottomLeft => (false, true, true, false),
+        Anchor::BottomRight => (false, true, false, true),
+        Anchor::Center => (false, false, false, false),
+    };
+    window.set_anchor(Edge::Top, top);
+    window.set_anchor(Edge::Bottom, bottom);
+    window.set_anchor(Edge::Left, left);
+    window.set_anchor(Edge::Right, right);
 
     let base_provider = CssProvider::new();
     base_provider.load_from_data(&config.css);
