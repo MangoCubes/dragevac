@@ -2,7 +2,6 @@
 #[derive(Clone, Debug)]
 pub struct DropItem {
     pub display_name: String,
-    /// Raw data
-    pub data: Vec<u8>,
+    pub data: String,
     pub mime_type: String,
 }

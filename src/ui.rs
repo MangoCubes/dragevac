@@ -117,7 +117,7 @@ pub fn build_ui(app: &Application, config_path: Option<&Path>) {
 
                             let item = DropItem {
                                 display_name: name,
-                                data: uri.as_bytes().to_vec(),
+                                data: uri,
                                 mime_type: "text/uri-list".to_string(),
                             };
 
@@ -156,7 +156,7 @@ pub fn build_ui(app: &Application, config_path: Option<&Path>) {
 
                         let item = DropItem {
                             display_name: text.clone(),
-                            data: text.as_bytes().to_vec(),
+                            data: text,
                             mime_type: "text/plain".to_string(),
                         };
 
@@ -204,7 +204,7 @@ fn add_row_to_list(list_box: &ListBox, _items: &Arc<Mutex<Vec<DropItem>>>, item:
     drag_source.set_actions(DragAction::COPY);
 
     drag_source.connect_prepare(move |_source, _x, _y| {
-        let bytes = glib::Bytes::from(&item.data);
+        let bytes = glib::Bytes::from(item.data.as_bytes());
         Some(ContentProvider::for_bytes(&item.mime_type, &bytes))
     });
 
