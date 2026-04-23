@@ -206,7 +206,12 @@ fn add_row_to_list(list_box: &ListBox, _items: &Arc<Mutex<Vec<DropItem>>>, item:
     drag_source.set_actions(DragAction::COPY);
 
     drag_source.connect_prepare(move |_source, _x, _y| {
-        Some(ContentProvider::for_value(&item.data.to_value()))
+        if item.mime_type == "text/plain" {
+            Some(ContentProvider::for_value(&item.data.to_value()))
+        } else {
+            let bytes = glib::Bytes::from(item.data.as_bytes());
+            Some(ContentProvider::for_bytes(&item.mime_type, &bytes))
+        }
     });
 
     row.add_controller(drag_source);
