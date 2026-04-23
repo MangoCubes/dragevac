@@ -83,6 +83,13 @@ pub fn build_ui(app: &Application, config_path: Option<&Path>) {
     let drop_target = DropTargetAsync::new(Some(combined_formats), DragAction::COPY);
 
     drop_target.connect_drop(move |_target, drop, _x, _y| {
+        // Ignore drops that originated from this program
+        if drop.drag().is_some() {
+            debug!("Ignoring self-drop.");
+            drop.finish(DragAction::empty());
+            return false;
+        }
+
         let formats = drop.formats();
         let is_file = formats.contains_type(gdk::FileList::static_type());
 
