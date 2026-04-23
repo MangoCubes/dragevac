@@ -2,11 +2,13 @@ mod dropitem;
 
 use std::sync::{Arc, Mutex};
 
-use gtk4::gdk;
-use gtk4::gdk::{ContentFormats, ContentProvider, Display, DragAction, Key};
+use gtk4::gdk::{ContentFormats, ContentProvider, Display, DragAction, FileList, Key};
+use gtk4::gio::Cancellable;
 use gtk4::gio::prelude::ApplicationExt;
-use gtk4::glib::{self, Propagation};
+use gtk4::glib::value::ToValue;
+use gtk4::glib::{self, Priority, Propagation};
 use gtk4::prelude::{BoxExt, FileExt, GtkWindowExt, StaticType, WidgetExt};
+use gtk4::{Align, Box};
 use gtk4::{
     Application, ApplicationWindow, CssProvider, DragSource, DropTargetAsync, EventControllerKey,
     Label, ListBox, Orientation,
@@ -67,7 +69,7 @@ pub fn build_ui(app: &Application, config_path: Option<&Path>) {
 
     let items: Arc<Mutex<Vec<DropItem>>> = Arc::new(Mutex::new(Vec::new()));
 
-    let vbox = gtk4::Box::new(Orientation::Vertical, 0);
+    let vbox = Box::new(Orientation::Vertical, 0);
 
     let placeholder = Label::new(Some(&config.empty_text));
 
@@ -77,7 +79,7 @@ pub fn build_ui(app: &Application, config_path: Option<&Path>) {
     vbox.append(&list_box);
 
     let text_formats = ContentFormats::new(&["text/uri-list", "text/plain"]);
-    let file_formats = ContentFormats::for_type(gdk::FileList::static_type());
+    let file_formats = ContentFormats::for_type(FileList::static_type());
     let combined_formats = text_formats.union(&file_formats);
 
     let drop_target = DropTargetAsync::new(Some(combined_formats), DragAction::COPY);
@@ -91,7 +93,7 @@ pub fn build_ui(app: &Application, config_path: Option<&Path>) {
         }
 
         let formats = drop.formats();
-        let is_file = formats.contains_type(gdk::FileList::static_type());
+        let is_file = formats.contains_type(FileList::static_type());
 
         let items2 = items.clone();
         let list_box2 = list_box.clone();
@@ -102,12 +104,12 @@ pub fn build_ui(app: &Application, config_path: Option<&Path>) {
             // Dropped item is a list of files
             debug!("File drop detected.");
             drop.read_value_async(
-                gdk::FileList::static_type(),
-                glib::Priority::DEFAULT,
-                None::<&gtk4::gio::Cancellable>,
+                FileList::static_type(),
+                Priority::DEFAULT,
+                None::<&Cancellable>,
                 move |result| match result {
                     Ok(fl) => {
-                        let file_list: gdk::FileList = fl.get().unwrap();
+                        let file_list: FileList = fl.get().unwrap();
                         for file in file_list.files() {
                             let uri = file.uri().to_string();
                             let name = file
@@ -144,8 +146,8 @@ pub fn build_ui(app: &Application, config_path: Option<&Path>) {
             debug!("Text drop detected.");
             drop.read_value_async(
                 glib::Type::STRING,
-                glib::Priority::DEFAULT,
-                None::<&gtk4::gio::Cancellable>,
+                Priority::DEFAULT,
+                None::<&Cancellable>,
                 move |result| match result {
                     Ok(value) => {
                         let text: String = value.get().unwrap_or_default();
@@ -189,11 +191,11 @@ pub fn build_ui(app: &Application, config_path: Option<&Path>) {
 }
 
 fn add_row_to_list(list_box: &ListBox, _items: &Arc<Mutex<Vec<DropItem>>>, item: DropItem) {
-    let row = gtk4::Box::new(Orientation::Horizontal, 8);
+    let row = Box::new(Orientation::Horizontal, 8);
 
     let name = Label::new(Some(&item.display_name));
     name.set_hexpand(true);
-    name.set_halign(gtk4::Align::Start);
+    name.set_halign(Align::Start);
 
     let mime = Label::new(Some(&item.mime_type));
 
@@ -204,8 +206,7 @@ fn add_row_to_list(list_box: &ListBox, _items: &Arc<Mutex<Vec<DropItem>>>, item:
     drag_source.set_actions(DragAction::COPY);
 
     drag_source.connect_prepare(move |_source, _x, _y| {
-        let bytes = glib::Bytes::from(item.data.as_bytes());
-        Some(ContentProvider::for_bytes(&item.mime_type, &bytes))
+        Some(ContentProvider::for_value(&item.data.to_value()))
     });
 
     row.add_controller(drag_source);
