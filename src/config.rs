@@ -63,30 +63,6 @@ impl Config {
     }
 }
 
-fn get_state_path(state_path: Option<&Path>) -> Option<PathBuf> {
-    match state_path {
-        Some(p) => Some(p.to_path_buf()),
-        None => Some(
-            match env::var("XDG_DATA_HOME") {
-                Ok(home) => PathBuf::from(home),
-                Err(e) => {
-                    error!(
-                        "Failed go get XDG_DATA_HOME ({}). Falling back to $HOME/.config.",
-                        e.to_string()
-                    );
-                    if let Ok(p) = env::var("HOME") {
-                        PathBuf::from(p).join(".local/state")
-                    } else {
-                        error!("Failed go get HOME ({}).", e.to_string());
-                        return None;
-                    }
-                }
-            }
-            .join("dragbox/state.json"),
-        ),
-    }
-}
-
 fn get_config_path(config_path: Option<&Path>) -> Option<PathBuf> {
     match config_path {
         Some(p) => Some(p.to_path_buf()),
