@@ -31,13 +31,14 @@ struct Args {
     command: Option<Command>,
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Default)]
 enum Command {
     /// Writes default config. If config already exists, this will fill out missing fields, delete
     /// invalid fields, and write the result back.
     Config,
     /// Default execution method. The entry list is completely empty, and can be filled by dropping
     /// items into it. The list is not saved when the program exits.
+    #[default]
     NoSave,
     // /// The entry list is saved into a specific directory in /tmp. The entry list state file is
     // /// updated whenever user adds or removes entries from them. This allows user to have a
@@ -61,11 +62,11 @@ fn main() {
 
     let config_path = args.config;
 
-    match args.command {
-        Some(Command::Config) => {
+    match args.command.unwrap_or_default() {
+        Command::Config => {
             config::write_config(config_path.as_deref());
         }
-        None | Some(Command::NoSave) => {
+        Command::NoSave => {
             let app = Application::builder()
                 .application_id("ch.skew.dragbox")
                 .build();
@@ -74,7 +75,7 @@ fn main() {
 
             app.run_with_args::<String>(&[]);
         }
-        Some(Command::Persistent { state }) => {
+        Command::Persistent { state } => {
             let app = Application::builder()
                 .application_id("ch.skew.dragbox")
                 .build();
