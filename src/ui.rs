@@ -19,8 +19,10 @@ use crate::config::load_config;
 use crate::state::DropItem;
 use crate::{debug, error};
 
-pub fn build_ui(app: &Application, config_path: Option<&Path>, state: Option<Vec<DropItem>>) {
+pub fn build_ui(app: &Application, config_path: Option<&Path>, state: Vec<DropItem>) {
     let config = load_config(config_path);
+    debug!("Loaded config: {:?}", config);
+    debug!("Loaded state: {:?}", state);
     let window = ApplicationWindow::builder()
         .application(app)
         .title("DragBox")

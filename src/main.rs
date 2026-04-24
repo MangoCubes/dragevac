@@ -11,7 +11,10 @@ use gtk4::{
     gio::prelude::{ApplicationExt, ApplicationExtManual},
 };
 
-use crate::{state::load_state, ui::build_ui};
+use crate::{
+    state::{load_default_state, parse_state},
+    ui::build_ui,
+};
 
 #[derive(Parser)]
 #[command(
@@ -71,21 +74,32 @@ fn main() {
                 .application_id("ch.skew.dragbox")
                 .build();
 
-            app.connect_activate(move |app| build_ui(app, config_path.as_deref(), None));
+            app.connect_activate(move |app| build_ui(app, config_path.as_deref(), vec![]));
 
             app.run_with_args::<String>(&[]);
         }
         Command::Persistent { state } => {
-            let app = Application::builder()
-                .application_id("ch.skew.dragbox")
-                .build();
+            let result = match state {
+                Some(path) => {
+                    debug!("Path {:?} provided by user.", path);
+                    parse_state(&path)
+                }
+                None => {
+                    debug!("No path provided by user.");
+                    load_default_state()
+                }
+            };
+            if let Some(state) = result {
+                let app = Application::builder()
+                    .application_id("ch.skew.dragbox")
+                    .build();
 
-            app.connect_activate(move |app| {
-                let state = load_state(state.as_deref());
-                build_ui(app, config_path.as_deref(), state)
-            });
+                app.connect_activate(move |app| {
+                    build_ui(app, config_path.as_deref(), state.clone())
+                });
 
-            app.run_with_args::<String>(&[]);
+                app.run_with_args::<String>(&[]);
+            }
         }
     }
 }
