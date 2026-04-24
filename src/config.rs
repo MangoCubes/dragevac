@@ -63,31 +63,54 @@ impl Config {
     }
 }
 
-fn get_config_dir() -> Option<PathBuf> {
-    Some(match env::var("XDG_CONFIG_HOME") {
-        Ok(home) => PathBuf::from(home),
-        Err(e) => {
-            error!(
-                "Failed go get XDG_CONFIG_HOME ({}). Falling back to $HOME/.config.",
-                e.to_string()
-            );
-            if let Ok(p) = env::var("HOME") {
-                PathBuf::from(p).join(".config")
-            } else {
-                error!(
-                    "Failed go get HOME ({}). Using default config.",
-                    e.to_string()
-                );
-                return None;
+fn get_state_path(state_path: Option<&Path>) -> Option<PathBuf> {
+    match state_path {
+        Some(p) => Some(p.to_path_buf()),
+        None => Some(
+            match env::var("XDG_DATA_HOME") {
+                Ok(home) => PathBuf::from(home),
+                Err(e) => {
+                    error!(
+                        "Failed go get XDG_DATA_HOME ({}). Falling back to $HOME/.config.",
+                        e.to_string()
+                    );
+                    if let Ok(p) = env::var("HOME") {
+                        PathBuf::from(p).join(".local/state")
+                    } else {
+                        error!("Failed go get HOME ({}).", e.to_string());
+                        return None;
+                    }
+                }
             }
-        }
-    })
+            .join("dragbox/state.json"),
+        ),
+    }
 }
 
-pub fn get_config_path(config_path: Option<&Path>) -> Option<PathBuf> {
+fn get_config_path(config_path: Option<&Path>) -> Option<PathBuf> {
     match config_path {
         Some(p) => Some(p.to_path_buf()),
-        None => Some(get_config_dir()?.join("dragbox/config.json")),
+        None => Some(
+            match env::var("XDG_CONFIG_HOME") {
+                Ok(home) => PathBuf::from(home),
+                Err(e) => {
+                    error!(
+                        "Failed go get XDG_CONFIG_HOME ({}). Falling back to $HOME/.config.",
+                        e.to_string()
+                    );
+                    if let Ok(p) = env::var("HOME") {
+                        PathBuf::from(p).join(".config")
+                    } else {
+                        error!(
+                            "Failed go get HOME ({}). Using default config.",
+                            e.to_string()
+                        );
+                        return None;
+                    }
+                }
+            }
+            .join("dragbox/config.json"),
+        ),
     }
 }
 
