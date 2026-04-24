@@ -38,6 +38,7 @@ fn get_state_path(state_path: Option<&Path>) -> Option<PathBuf> {
         ),
     }
 }
+
 pub fn load_state(state_path: Option<&Path>) -> Option<Vec<DropItem>> {
     let Some(path) = get_state_path(state_path) else {
         return None;

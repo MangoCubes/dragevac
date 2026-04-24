@@ -1,5 +1,6 @@
 mod config;
 mod logging;
+mod state;
 mod ui;
 
 use std::path::PathBuf;
@@ -10,7 +11,7 @@ use gtk4::{
     gio::prelude::{ApplicationExt, ApplicationExtManual},
 };
 
-use crate::ui::build_ui;
+use crate::{state::load_state, ui::build_ui};
 
 #[derive(Parser)]
 #[command(
@@ -42,9 +43,13 @@ enum Command {
     // /// updated whenever user adds or removes entries from them. This allows user to have a
     // /// persistent list that automatically resets when the computer reboots.
     // Temporary,
-    // /// Stores the entries in a specified location for complete permanence. If the user does not
-    // /// specify the location to store the entries, $XDG_DATA_HOME/dragbox/state.json will be used.
-    // Persistent,
+    /// Stores the entries in a specified location for complete permanence. If the user does not
+    /// specify the location to store the entries, $XDG_DATA_HOME/dragbox/state.json will be used.
+    Persistent {
+        /// Location to store the state
+        #[arg(short, long)]
+        state: Option<PathBuf>,
+    },
     // /// User cannot drag items into the list. User must specify the state file and/or a preload
     // /// directory from which the list of entries will be pre-filled.
     // ReadOnly,
@@ -65,7 +70,19 @@ fn main() {
                 .application_id("ch.skew.dragbox")
                 .build();
 
-            app.connect_activate(move |app| build_ui(app, config_path.as_deref()));
+            app.connect_activate(move |app| build_ui(app, config_path.as_deref(), None));
+
+            app.run_with_args::<String>(&[]);
+        }
+        Some(Command::Persistent { state }) => {
+            let app = Application::builder()
+                .application_id("ch.skew.dragbox")
+                .build();
+
+            app.connect_activate(move |app| {
+                let state = load_state(state.as_deref());
+                build_ui(app, config_path.as_deref(), state)
+            });
 
             app.run_with_args::<String>(&[]);
         }
