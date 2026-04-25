@@ -32,6 +32,10 @@ pub fn build_ui(app: &Application, config_path: Option<&Path>, state: Vec<DropIt
 
     window.init_layer_shell();
     window.set_layer(Layer::Top);
+
+    if config.exclusive {
+        window.auto_exclusive_zone_enable();
+    }
     window.set_keyboard_mode(KeyboardMode::OnDemand);
 
     let (top, bottom, left, right) = config.get_edges();

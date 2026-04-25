@@ -32,6 +32,10 @@ pub struct Config {
     /// Expand along the anchored edge. Applicable only if user selected top/bottom/left/right for
     /// [`Config::anchor`].
     pub expand: bool,
+    /// If you are using tiling window manager, other windows will resize themselves to give DragBox
+    /// its own space so that other windows do not overlap with it. Applicable only if user selected
+    /// top/bottom/left. Setting [`Config::expand`] to [`true`] is also recommended.
+    pub exclusive: bool,
 }
 
 impl Default for Config {
@@ -42,6 +46,7 @@ impl Default for Config {
             keep_text: true,
             anchor: Anchor::default(),
             expand: false,
+            exclusive: false,
         }
     }
 }
