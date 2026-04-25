@@ -51,9 +51,14 @@ enum Command {
         #[arg(short, long)]
         state: Option<PathBuf>,
     },
-    // /// User cannot drag items into the list. User must specify the state file and/or a preload
-    // /// directory from which the list of entries will be pre-filled.
-    // ReadOnly,
+    /// User cannot drag items into the list. User must specify the state file and/or a preload
+    /// directory from which the list of entries will be pre-filled.
+    ReadOnly {
+        /// Location to store the state. If not specified, $XDG_DATA_HOME/dragevac/state.json will be
+        /// used.
+        #[arg(short, long)]
+        state: PathBuf,
+    },
 }
 
 impl Command {
@@ -66,6 +71,7 @@ impl Command {
                 Some(path) => StateLocation::Persistent(path.to_path_buf()),
                 None => StateLocation::PersistentDefault,
             },
+            Command::ReadOnly { state: path } => StateLocation::ReadOnly(path.to_path_buf()),
         }
     }
 }

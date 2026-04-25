@@ -94,46 +94,88 @@ pub fn build_ui(app: &Application, config_path: Option<&Path>, save: StateLocati
     let file_formats = ContentFormats::for_type(FileList::static_type());
     let combined_formats = text_formats.union(&file_formats);
 
-    let drop_target = DropTargetAsync::new(Some(combined_formats), DragAction::COPY);
+    if !matches!(save, StateLocation::ReadOnly(_)) {
+        let drop_target = DropTargetAsync::new(Some(combined_formats), DragAction::COPY);
 
-    drop_target.connect_drop(move |_target, drop, _x, _y| {
-        // Ignore drops that originated from this program
-        if drop.drag().is_some() {
-            debug!("Ignoring self-drop.");
-            drop.finish(DragAction::empty());
-            return false;
-        }
+        drop_target.connect_drop(move |_target, drop, _x, _y| {
+            // Ignore drops that originated from this program
+            if drop.drag().is_some() {
+                debug!("Ignoring self-drop.");
+                drop.finish(DragAction::empty());
+                return false;
+            }
 
-        let formats = drop.formats();
-        let is_file = formats.contains_type(FileList::static_type());
+            let formats = drop.formats();
+            let is_file = formats.contains_type(FileList::static_type());
 
-        let items2 = items.clone();
-        let list_box2 = list_box.clone();
-        let placeholder2 = placeholder.clone();
-        let drop_ref2 = drop.clone();
-        let save2 = save.clone();
+            let items2 = items.clone();
+            let list_box2 = list_box.clone();
+            let placeholder2 = placeholder.clone();
+            let drop_ref2 = drop.clone();
+            let save2 = save.clone();
 
-        if is_file {
-            // Dropped item is a list of files
-            debug!("File drop detected.");
-            drop.read_value_async(
-                FileList::static_type(),
-                Priority::DEFAULT,
-                None::<&Cancellable>,
-                move |result| match result {
-                    Ok(fl) => {
-                        let file_list: FileList = fl.get().unwrap();
-                        for file in file_list.files() {
-                            let uri = file.uri().to_string();
-                            let name = file
-                                .basename()
-                                .map(|p| p.display().to_string())
-                                .unwrap_or_else(|| uri.clone());
+            if is_file {
+                // Dropped item is a list of files
+                debug!("File drop detected.");
+                drop.read_value_async(
+                    FileList::static_type(),
+                    Priority::DEFAULT,
+                    None::<&Cancellable>,
+                    move |result| match result {
+                        Ok(fl) => {
+                            let file_list: FileList = fl.get().unwrap();
+                            for file in file_list.files() {
+                                let uri = file.uri().to_string();
+                                let name = file
+                                    .basename()
+                                    .map(|p| p.display().to_string())
+                                    .unwrap_or_else(|| uri.clone());
+
+                                let item = DropItem {
+                                    display_name: name,
+                                    data: uri,
+                                    mime_type: "text/uri-list".to_string(),
+                                };
+
+                                {
+                                    let mut list = items2.lock().unwrap();
+                                    list.push(item.clone());
+                                    add_row_to_list(&list_box2, &items2, item);
+                                    save2.write_state(&list);
+                                }
+                            }
+
+                            if !config.keep_text {
+                                placeholder2.set_visible(false);
+                            }
+
+                            drop_ref2.finish(DragAction::COPY);
+                        }
+                        Err(err) => {
+                            error!("Failed to read dropped files: {err}");
+                            drop_ref2.finish(DragAction::empty());
+                        }
+                    },
+                );
+            } else {
+                // Dropped item is text
+                debug!("Text drop detected.");
+                drop.read_value_async(
+                    glib::Type::STRING,
+                    Priority::DEFAULT,
+                    None::<&Cancellable>,
+                    move |result| match result {
+                        Ok(value) => {
+                            let text: String = value.get().unwrap_or_default();
+                            if text.is_empty() {
+                                drop_ref2.finish(DragAction::empty());
+                                return;
+                            }
 
                             let item = DropItem {
-                                display_name: name,
-                                data: uri,
-                                mime_type: "text/uri-list".to_string(),
+                                display_name: text.clone(),
+                                data: text,
+                                mime_type: "text/plain".to_string(),
                             };
 
                             {
@@ -142,66 +184,26 @@ pub fn build_ui(app: &Application, config_path: Option<&Path>, save: StateLocati
                                 add_row_to_list(&list_box2, &items2, item);
                                 save2.write_state(&list);
                             }
-                        }
 
-                        if !config.keep_text {
-                            placeholder2.set_visible(false);
-                        }
+                            if !config.keep_text {
+                                placeholder2.set_visible(false);
+                            }
 
-                        drop_ref2.finish(DragAction::COPY);
-                    }
-                    Err(err) => {
-                        error!("Failed to read dropped files: {err}");
-                        drop_ref2.finish(DragAction::empty());
-                    }
-                },
-            );
-        } else {
-            // Dropped item is text
-            debug!("Text drop detected.");
-            drop.read_value_async(
-                glib::Type::STRING,
-                Priority::DEFAULT,
-                None::<&Cancellable>,
-                move |result| match result {
-                    Ok(value) => {
-                        let text: String = value.get().unwrap_or_default();
-                        if text.is_empty() {
+                            drop_ref2.finish(DragAction::COPY);
+                        }
+                        Err(err) => {
+                            error!("Failed to read dropped text: {err}");
                             drop_ref2.finish(DragAction::empty());
-                            return;
                         }
+                    },
+                );
+            }
 
-                        let item = DropItem {
-                            display_name: text.clone(),
-                            data: text,
-                            mime_type: "text/plain".to_string(),
-                        };
+            true
+        });
 
-                        {
-                            let mut list = items2.lock().unwrap();
-                            list.push(item.clone());
-                            add_row_to_list(&list_box2, &items2, item);
-                            save2.write_state(&list);
-                        }
-
-                        if !config.keep_text {
-                            placeholder2.set_visible(false);
-                        }
-
-                        drop_ref2.finish(DragAction::COPY);
-                    }
-                    Err(err) => {
-                        error!("Failed to read dropped text: {err}");
-                        drop_ref2.finish(DragAction::empty());
-                    }
-                },
-            );
-        }
-
-        true
-    });
-
-    vbox.add_controller(drop_target);
+        vbox.add_controller(drop_target);
+    }
 
     window.set_child(Some(&vbox));
     window.present();

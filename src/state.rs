@@ -18,6 +18,7 @@ pub enum StateLocation {
     Temporary,
     Persistent(PathBuf),
     PersistentDefault,
+    ReadOnly(PathBuf),
 }
 
 impl StateLocation {
@@ -25,7 +26,9 @@ impl StateLocation {
         match &self {
             StateLocation::NoSave => None,
             StateLocation::Temporary => Some(PathBuf::from("/tmp/dragevac/state.json")),
-            StateLocation::Persistent(path_buf) => Some(path_buf.to_path_buf()),
+            StateLocation::ReadOnly(path_buf) | StateLocation::Persistent(path_buf) => {
+                Some(path_buf.to_path_buf())
+            }
             StateLocation::PersistentDefault => Some(
                 match env::var("XDG_DATA_HOME") {
                     Ok(home) => PathBuf::from(home),
@@ -68,6 +71,9 @@ impl StateLocation {
         }
     }
     pub fn write_state(&self, state: &[DropItem]) {
+        if matches!(self, StateLocation::ReadOnly(_)) {
+            return;
+        }
         let Some(p) = self.get_save_location() else {
             return;
         };
