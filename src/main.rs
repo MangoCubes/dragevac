@@ -11,7 +11,7 @@ use gtk4::{
     gio::prelude::{ApplicationExt, ApplicationExtManual},
 };
 
-use crate::{config::load_config, state::load_state, ui::build_ui};
+use crate::{config::load_config, state::StateLocation, ui::build_ui};
 
 #[derive(Parser)]
 #[command(
@@ -31,7 +31,7 @@ struct Args {
     command: Option<Command>,
 }
 
-#[derive(Subcommand, Default)]
+#[derive(Subcommand, Default, Clone)]
 enum Command {
     /// Writes default config. If config already exists, this will fill out missing fields, delete
     /// invalid fields, and write the result back.
@@ -40,10 +40,10 @@ enum Command {
     /// items into it. The list is not saved when the program exits.
     #[default]
     NoSave,
-    // /// The entry list is saved into a specific directory in /tmp. The entry list state file is
-    // /// updated whenever user adds or removes entries from them. This allows user to have a
-    // /// persistent list that automatically resets when the computer reboots.
-    // Temporary,
+    /// The entry list is saved into a specific directory in /tmp. The entry list state file is
+    /// updated whenever user adds or removes entries from them. This allows user to have a
+    /// persistent list that automatically resets when the computer reboots.
+    Temporary,
     /// Stores the entries in a specified location for complete permanence.
     Persistent {
         /// Location to store the state. If not specified, $XDG_DATA_HOME/dragevac/state.json will be
@@ -56,33 +56,42 @@ enum Command {
     // ReadOnly,
 }
 
+impl Command {
+    fn convert(&self) -> StateLocation {
+        match self {
+            Command::Config => unreachable!(),
+            Command::NoSave => StateLocation::NoSave,
+            Command::Temporary => StateLocation::Temporary,
+            Command::Persistent { state } => match state {
+                Some(path) => StateLocation::Persistent(path.to_path_buf()),
+                None => StateLocation::PersistentDefault,
+            },
+        }
+    }
+}
+
 fn main() {
     let args = Args::parse();
     logging::set_verbose(args.verbose);
 
     let config_path = args.config;
+    fn build_app() -> Application {
+        Application::builder()
+            .application_id("ch.skew.dragevac")
+            .build()
+    }
+    let cmd = args.command.unwrap_or_default();
 
-    match args.command.unwrap_or_default() {
+    match &cmd {
         Command::Config => {
             let config = load_config(config_path.as_deref());
             config::write_config(config_path.as_deref(), config);
         }
-        Command::NoSave => {
-            let app = Application::builder()
-                .application_id("ch.skew.dragevac")
-                .build();
-
-            app.connect_activate(move |app| build_ui(app, config_path.as_deref(), vec![]));
-
-            app.run_with_args::<String>(&[]);
-        }
-        Command::Persistent { state } => {
-            let app = Application::builder()
-                .application_id("ch.skew.dragevac")
-                .build();
-
+        _ => {
+            let app = build_app();
             app.connect_activate(move |app| {
-                build_ui(app, config_path.as_deref(), load_state(&state))
+                let save = cmd.convert();
+                build_ui(app, config_path.as_deref(), save)
             });
 
             app.run_with_args::<String>(&[]);

@@ -16,11 +16,12 @@ use gtk4_layer_shell::{Edge, KeyboardMode, Layer, LayerShell};
 use std::path::Path;
 
 use crate::config::load_config;
-use crate::state::DropItem;
+use crate::state::{DropItem, StateLocation};
 use crate::{debug, error};
 
-pub fn build_ui(app: &Application, config_path: Option<&Path>, state: Vec<DropItem>) {
+pub fn build_ui(app: &Application, config_path: Option<&Path>, save: StateLocation) {
     let config = load_config(config_path);
+    let state = save.load_state();
     debug!("Loaded config: {:?}", config);
     debug!("Loaded state: {:?}", state);
     let window = ApplicationWindow::builder()
@@ -71,13 +72,20 @@ pub fn build_ui(app: &Application, config_path: Option<&Path>, state: Vec<DropIt
 
     window.add_controller(key_controller);
 
-    let items: Arc<Mutex<Vec<DropItem>>> = Arc::new(Mutex::new(Vec::new()));
+    let items: Arc<Mutex<Vec<DropItem>>> = Arc::new(Mutex::new(state.clone()));
 
     let vbox = Box::new(Orientation::Vertical, 0);
 
     let placeholder = Label::new(Some(&config.empty_text));
+    if !state.is_empty() && !config.keep_text {
+        placeholder.set_visible(false);
+    }
 
     let list_box = ListBox::new();
+
+    for item in state {
+        add_row_to_list(&list_box, &items, item);
+    }
 
     vbox.append(&placeholder);
     vbox.append(&list_box);
@@ -103,6 +111,7 @@ pub fn build_ui(app: &Application, config_path: Option<&Path>, state: Vec<DropIt
         let list_box2 = list_box.clone();
         let placeholder2 = placeholder.clone();
         let drop_ref2 = drop.clone();
+        let save2 = save.clone();
 
         if is_file {
             // Dropped item is a list of files
@@ -128,8 +137,10 @@ pub fn build_ui(app: &Application, config_path: Option<&Path>, state: Vec<DropIt
                             };
 
                             {
-                                items2.lock().unwrap().push(item.clone());
+                                let mut list = items2.lock().unwrap();
+                                list.push(item.clone());
                                 add_row_to_list(&list_box2, &items2, item);
+                                save2.write_state(&list);
                             }
                         }
 
@@ -167,8 +178,10 @@ pub fn build_ui(app: &Application, config_path: Option<&Path>, state: Vec<DropIt
                         };
 
                         {
-                            items2.lock().unwrap().push(item.clone());
+                            let mut list = items2.lock().unwrap();
+                            list.push(item.clone());
                             add_row_to_list(&list_box2, &items2, item);
+                            save2.write_state(&list);
                         }
 
                         if !config.keep_text {
