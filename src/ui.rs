@@ -13,15 +13,30 @@ use gtk4::{
 };
 use gtk4_layer_shell::{Edge, KeyboardMode, Layer, LayerShell};
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::config::load_config;
 use crate::state::{DropItem, StateLocation};
 use crate::{debug, error};
 
-pub fn build_ui(app: &Application, config_path: Option<&Path>, save: StateLocation) {
+pub fn build_ui(
+    app: &Application,
+    config_path: Option<&Path>,
+    save: StateLocation,
+    load_paths: Vec<PathBuf>,
+) {
     let config = load_config(config_path);
-    let state = save.load_state();
+    let mut state = save.load_state();
+    for path in load_paths {
+        if let Ok(s) = std::fs::read_to_string(&path) {
+            match serde_json::from_str::<Vec<DropItem>>(&s) {
+                Ok(items) => state.extend(items),
+                Err(e) => error!("Failed to parse load file: {}", e),
+            }
+        } else {
+            error!("Failed to read load file: {:?}", path);
+        }
+    }
     debug!("Loaded config: {:?}", config);
     debug!("Loaded state: {:?}", state);
     let window = ApplicationWindow::builder()

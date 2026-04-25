@@ -23,6 +23,10 @@ struct Args {
     #[arg(short, long)]
     verbose: bool,
 
+    /// Loads items from file on startup
+    #[arg(long)]
+    load: Vec<PathBuf>,
+
     /// Path to config file
     #[arg(short, long)]
     config: Option<PathBuf>,
@@ -97,7 +101,7 @@ fn main() {
             let app = build_app();
             app.connect_activate(move |app| {
                 let save = cmd.convert();
-                build_ui(app, config_path.as_deref(), save)
+                build_ui(app, config_path.as_deref(), save, args.load.clone())
             });
 
             app.run_with_args::<String>(&[]);
