@@ -11,11 +11,7 @@ use gtk4::{
     gio::prelude::{ApplicationExt, ApplicationExtManual},
 };
 
-use crate::{
-    config::load_config,
-    state::{load_default_state, parse_state},
-    ui::build_ui,
-};
+use crate::{config::load_config, state::load_state, ui::build_ui};
 
 #[derive(Parser)]
 #[command(
@@ -48,10 +44,10 @@ enum Command {
     // /// updated whenever user adds or removes entries from them. This allows user to have a
     // /// persistent list that automatically resets when the computer reboots.
     // Temporary,
-    /// Stores the entries in a specified location for complete permanence. If the user does not
-    /// specify the location to store the entries, $XDG_DATA_HOME/dragbox/state.json will be used.
+    /// Stores the entries in a specified location for complete permanence.
     Persistent {
-        /// Location to store the state
+        /// Location to store the state. If not specified, $XDG_DATA_HOME/dragbox/state.json will be
+        /// used.
         #[arg(short, long)]
         state: Option<PathBuf>,
     },
@@ -81,27 +77,15 @@ fn main() {
             app.run_with_args::<String>(&[]);
         }
         Command::Persistent { state } => {
-            let result = match state {
-                Some(path) => {
-                    debug!("Path {:?} provided by user.", path);
-                    parse_state(&path)
-                }
-                None => {
-                    debug!("No path provided by user.");
-                    load_default_state()
-                }
-            };
-            if let Some(state) = result {
-                let app = Application::builder()
-                    .application_id("ch.skew.dragbox")
-                    .build();
+            let app = Application::builder()
+                .application_id("ch.skew.dragbox")
+                .build();
 
-                app.connect_activate(move |app| {
-                    build_ui(app, config_path.as_deref(), state.clone())
-                });
+            app.connect_activate(move |app| {
+                build_ui(app, config_path.as_deref(), load_state(&state))
+            });
 
-                app.run_with_args::<String>(&[]);
-            }
+            app.run_with_args::<String>(&[]);
         }
     }
 }

@@ -2,7 +2,7 @@ use std::{fs, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-use crate::error;
+use crate::{debug, error};
 
 /// Single item dragged into the list
 #[derive(Deserialize, Serialize, Clone, Debug)]
@@ -12,13 +12,21 @@ pub struct DropItem {
     pub mime_type: String,
 }
 
+/// State Management
+/// If the current execution mode is in Persistent mode:
+///   If the file does not exist, this implies initialisation. Program runs normally, and state is
+///   written normally.
+///   If the file does exist, but is not valid, then throw error to notify the user that the file
+///   they have explicitly specified is broken.
+///   If the file exists, then obviously load that and run the program
+
 fn get_default_path() -> Option<PathBuf> {
     Some(
         match env::var("XDG_DATA_HOME") {
             Ok(home) => PathBuf::from(home),
             Err(e) => {
                 error!(
-                    "Failed go get XDG_DATA_HOME ({}). Falling back to $HOME/.config.",
+                    "Failed go get XDG_DATA_HOME ({}). Falling back to $HOME/.local/state.",
                     e.to_string()
                 );
                 if let Ok(p) = env::var("HOME") {
@@ -33,53 +41,50 @@ fn get_default_path() -> Option<PathBuf> {
     )
 }
 
-pub fn parse_state(path: &PathBuf) -> Option<Vec<DropItem>> {
-    fs::read_to_string(path)
-        .ok()
-        .and_then(|c| serde_json::from_str(&c).ok())
-        .unwrap_or_else(|| {
-            error!("Failed to parse state file at '{:?}'.", path.to_str());
-            None
-        })
-}
-
-pub fn load_default_state() -> Option<Vec<DropItem>> {
-    if let Some(path) = get_default_path() {
-        if fs::exists(&path).expect("Failed to check if $XDG_DATA_HOME/dragbox/state.json exists.")
-        {
-            parse_state(&path)
-        } else {
-            Some(vec![])
+pub fn load_state(path: &Option<PathBuf>) -> Vec<DropItem> {
+    let p = match path {
+        Some(p) => p,
+        None => &get_default_path().unwrap(),
+    };
+    if fs::exists(p).expect(&format!(
+        "Failed to check if file at {:?} exists.",
+        p.to_str()
+    )) {
+        debug!("Loading state from file {:?}.", p);
+        match fs::read_to_string(p) {
+            Ok(s) => match serde_json::from_str::<Vec<DropItem>>(&s) {
+                Ok(c) => c,
+                Err(e) => panic!("Failed to parse state file: {}", e.to_string()),
+            },
+            Err(e) => panic!("Failed to read state file: {}", e.to_string()),
         }
     } else {
-        error!("Failed to get DragBox's data path!");
-        None
+        debug!("State file does not exist. Initialising with empty state.");
+        vec![]
     }
 }
 
-// pub fn write_state(state_path: Option<&Path>, state: Vec<DropItem>) {
-//     if let None = state_path {
-//         return;
-//     }
-//     let Some(path) = get_state_path(state_path) else {
-//         error!("Could not determine state path.");
-//         return;
+// pub fn write_config(config_path: Option<&Path>, config: Config) {
+//     let path = match config_path {
+//         Some(p) => p.to_path_buf(),
+//         None => get_default_config_path().expect("Cannot find config storage location!"),
 //     };
+//
 //     if let Some(parent) = path.parent() {
 //         if let Err(e) = fs::create_dir_all(parent) {
-//             error!("Failed to create state directory: {}", e);
+//             error!("Failed to create config directory: {}", e);
 //             return;
 //         }
 //     }
 //
-//     match serde_json::to_string_pretty(&state) {
+//     match serde_json::to_string_pretty(&config) {
 //         Ok(json) => {
 //             if let Err(e) = fs::write(&path, json) {
-//                 error!("Failed to write state file: {}", e);
+//                 error!("Failed to write config file: {}", e);
 //             } else {
-//                 println!("State written to {:?}", path);
+//                 println!("Config written to {:?}", path);
 //             }
 //         }
-//         Err(e) => error!("Failed to serialize state: {}", e),
+//         Err(e) => error!("Failed to serialize config: {}", e),
 //     }
 // }
