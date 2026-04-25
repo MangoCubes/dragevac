@@ -32,7 +32,7 @@ pub struct Config {
     /// Expand along the anchored edge. Applicable only if user selected top/bottom/left/right for
     /// [`Config::anchor`].
     pub expand: bool,
-    /// If you are using tiling window manager, other windows will resize themselves to give DragBox
+    /// If you are using tiling window manager, other windows will resize themselves to give DragEvac
     /// its own space so that other windows do not overlap with it. Applicable only if user selected
     /// top/bottom/left. Setting [`Config::expand`] to [`true`] is also recommended.
     pub exclusive: bool,
@@ -88,12 +88,12 @@ fn get_default_config_path() -> Option<PathBuf> {
                 }
             }
         }
-        .join("dragbox/config.json"),
+        .join("dragevac/config.json"),
     )
 }
 
 /// Reads config from a specified directory, or from the defautl path
-/// (~/.config/dragbox/config.json)
+/// (~/.config/dragevac/config.json)
 /// Returns Config object in the following scenario:
 /// 1. The [`config_path`] has been specified, and the config is valid
 /// 2. The [`config_path`] has not been specified, and the config is either valid, or simply does
@@ -123,7 +123,7 @@ pub fn load_config(config_path: Option<&Path>) -> Config {
                 false => {
                     println!("Config file does not exist. Using default config.");
                     println!("You can generate a new config file using the following command:");
-                    println!("dragbox config");
+                    println!("dragevac config");
                     Config::default()
                 }
             }

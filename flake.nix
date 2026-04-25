@@ -34,7 +34,7 @@
       {
         packages.default = pkgs.rustPlatform.buildRustPackage {
           src = ./.;
-          name = "dragbox";
+          name = "dragevac";
           cargoHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
         };
 

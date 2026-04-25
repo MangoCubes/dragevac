@@ -15,7 +15,7 @@ use crate::{config::load_config, state::load_state, ui::build_ui};
 
 #[derive(Parser)]
 #[command(
-    name = "dragbox",
+    name = "dragevac",
     about = "Quickly drag and drop across multiple windows without having to hold your left mouse button down!"
 )]
 struct Args {
@@ -46,7 +46,7 @@ enum Command {
     // Temporary,
     /// Stores the entries in a specified location for complete permanence.
     Persistent {
-        /// Location to store the state. If not specified, $XDG_DATA_HOME/dragbox/state.json will be
+        /// Location to store the state. If not specified, $XDG_DATA_HOME/dragevac/state.json will be
         /// used.
         #[arg(short, long)]
         state: Option<PathBuf>,
@@ -69,7 +69,7 @@ fn main() {
         }
         Command::NoSave => {
             let app = Application::builder()
-                .application_id("ch.skew.dragbox")
+                .application_id("ch.skew.dragevac")
                 .build();
 
             app.connect_activate(move |app| build_ui(app, config_path.as_deref(), vec![]));
@@ -78,7 +78,7 @@ fn main() {
         }
         Command::Persistent { state } => {
             let app = Application::builder()
-                .application_id("ch.skew.dragbox")
+                .application_id("ch.skew.dragevac")
                 .build();
 
             app.connect_activate(move |app| {

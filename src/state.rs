@@ -37,7 +37,7 @@ fn get_default_path() -> Option<PathBuf> {
                 }
             }
         }
-        .join("dragbox/state.json"),
+        .join("dragevac/state.json"),
     )
 }
 

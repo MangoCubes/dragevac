@@ -25,7 +25,7 @@ pub fn build_ui(app: &Application, config_path: Option<&Path>, state: Vec<DropIt
     debug!("Loaded state: {:?}", state);
     let window = ApplicationWindow::builder()
         .application(app)
-        .title("DragBox")
+        .title("DragEvac")
         .vexpand(true)
         .hexpand(true)
         .build();
