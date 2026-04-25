@@ -7,6 +7,7 @@ use crate::{debug, error};
 #[derive(Serialize, Deserialize, Debug, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum Anchor {
+    #[default]
     Top,
     Bottom,
     Left,
@@ -15,7 +16,6 @@ pub enum Anchor {
     TopRight,
     BottomLeft,
     BottomRight,
-    #[default]
     Center,
 }
 
@@ -46,7 +46,7 @@ impl Default for Config {
             empty_text: "Drop items here".to_string(),
             keep_text: true,
             anchor: Anchor::default(),
-            expand: false,
+            expand: true,
             exclusive: false,
         }
     }
