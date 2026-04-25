@@ -20,6 +20,7 @@ pub enum Anchor {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(default)]
 pub struct Config {
     /// CSS for the surface
     pub css: String,
@@ -103,10 +104,15 @@ fn get_default_config_path() -> Option<PathBuf> {
 pub fn load_config(config_path: Option<&Path>) -> Config {
     fn read_file(path: &Path) -> Config {
         match fs::read_to_string(&path) {
-            Ok(s) => match serde_json::from_str::<Config>(&s) {
-                Ok(c) => c,
-                Err(e) => panic!("Failed to parse the config: {}", e.to_string()),
-            },
+            Ok(s) => {
+                if s.trim().is_empty() {
+                    return Config::default();
+                }
+                match serde_json::from_str::<Config>(&s) {
+                    Ok(c) => c,
+                    Err(e) => panic!("Failed to parse the config: {}", e.to_string()),
+                }
+            }
             Err(e) => panic!("Failed to read config file: {}", e.to_string()),
         }
     }
