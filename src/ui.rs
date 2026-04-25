@@ -1,8 +1,8 @@
 use std::sync::{Arc, Mutex};
 
 use gtk4::gdk::{ContentFormats, ContentProvider, Display, DragAction, FileList, Key};
-use gtk4::gio::Cancellable;
 use gtk4::gio::prelude::ApplicationExt;
+use gtk4::gio::{Cancellable, File};
 use gtk4::glib::value::ToValue;
 use gtk4::glib::{self, Priority, Propagation};
 use gtk4::prelude::{BoxExt, FileExt, GtkWindowExt, StaticType, WidgetExt};
@@ -24,6 +24,7 @@ pub fn build_ui(
     config_path: Option<&Path>,
     save: StateLocation,
     load_paths: Vec<PathBuf>,
+    load_dirs: Vec<PathBuf>,
 ) {
     let config = load_config(config_path);
     let mut state = save.load_state();
@@ -35,6 +36,29 @@ pub fn build_ui(
             }
         } else {
             error!("Failed to read load file: {:?}", path);
+        }
+    }
+    for dir in load_dirs {
+        if let Ok(entries) = std::fs::read_dir(&dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if let Ok(abs_path) = std::fs::canonicalize(&path) {
+                    let file = File::for_path(&abs_path);
+                    let uri = file.uri().to_string();
+                    let name = file
+                        .basename()
+                        .map(|b| b.display().to_string())
+                        .unwrap_or_else(|| uri.clone());
+
+                    state.push(DropItem {
+                        display_name: name,
+                        data: uri,
+                        mime_type: "text/uri-list".to_string(),
+                    });
+                }
+            }
+        } else {
+            error!("Failed to read load dir: {:?}", dir);
         }
     }
     debug!("Loaded config: {:?}", config);

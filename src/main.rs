@@ -23,9 +23,13 @@ struct Args {
     #[arg(short, long)]
     verbose: bool,
 
-    /// Loads items from file on startup
+    /// Loads items from a file on startup
     #[arg(long)]
     load: Vec<PathBuf>,
+
+    /// Loads all items from a directory as entries on startup
+    #[arg(long)]
+    load_dir: Vec<PathBuf>,
 
     /// Path to config file
     #[arg(short, long)]
@@ -101,7 +105,13 @@ fn main() {
             let app = build_app();
             app.connect_activate(move |app| {
                 let save = cmd.convert();
-                build_ui(app, config_path.as_deref(), save, args.load.clone())
+                build_ui(
+                    app,
+                    config_path.as_deref(),
+                    save,
+                    args.load.clone(),
+                    args.load_dir.clone(),
+                )
             });
 
             app.run_with_args::<String>(&[]);
