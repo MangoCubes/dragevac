@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::error;
+use crate::{debug, error};
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 #[serde(rename_all = "lowercase")]
@@ -68,57 +68,75 @@ impl Config {
     }
 }
 
-fn get_config_path(config_path: Option<&Path>) -> Option<PathBuf> {
-    match config_path {
-        Some(p) => Some(p.to_path_buf()),
-        None => Some(
-            match env::var("XDG_CONFIG_HOME") {
-                Ok(home) => PathBuf::from(home),
-                Err(e) => {
+fn get_default_config_path() -> Option<PathBuf> {
+    Some(
+        match env::var("XDG_CONFIG_HOME") {
+            Ok(home) => PathBuf::from(home),
+            Err(e) => {
+                error!(
+                    "Failed go get XDG_CONFIG_HOME ({}). Falling back to $HOME/.config.",
+                    e.to_string()
+                );
+                if let Ok(p) = env::var("HOME") {
+                    PathBuf::from(p).join(".config")
+                } else {
                     error!(
-                        "Failed go get XDG_CONFIG_HOME ({}). Falling back to $HOME/.config.",
+                        "Failed go get HOME ({}). Using default config.",
                         e.to_string()
                     );
-                    if let Ok(p) = env::var("HOME") {
-                        PathBuf::from(p).join(".config")
-                    } else {
-                        error!(
-                            "Failed go get HOME ({}). Using default config.",
-                            e.to_string()
-                        );
-                        return None;
-                    }
+                    return None;
                 }
             }
-            .join("dragbox/config.json"),
-        ),
+        }
+        .join("dragbox/config.json"),
+    )
+}
+
+/// Reads config from a specified directory, or from the defautl path
+/// (~/.config/dragbox/config.json)
+/// Returns Config object in the following scenario:
+/// 1. The [`config_path`] has been specified, and the config is valid
+/// 2. The [`config_path`] has not been specified, and the config is either valid, or simply does
+///    not exist (in this case, we assume the user wants to use default config)
+/// In other scenarios, this function will panic to reduce confusion when the config appears to
+/// behave not as user intended.
+pub fn load_config(config_path: Option<&Path>) -> Config {
+    fn read_file(path: &Path) -> Config {
+        match fs::read_to_string(&path) {
+            Ok(s) => match serde_json::from_str::<Config>(&s) {
+                Ok(c) => c,
+                Err(e) => panic!("Failed to parse the config: {}", e.to_string()),
+            },
+            Err(e) => panic!("Failed to read config file: {}", e.to_string()),
+        }
+    }
+    match config_path {
+        Some(p) => read_file(p),
+        None => {
+            debug!("Config path not specified. Using default config path.");
+            let Some(path) = get_default_config_path() else {
+                return Config::default();
+            };
+            debug!("Using path: {:?}", path);
+            match fs::exists(&path).expect("Failed to check if the file exists.") {
+                true => read_file(&path),
+                false => {
+                    println!("Config file does not exist. Using default config.");
+                    println!("You can generate a new config file using the following command:");
+                    println!("dragbox config");
+                    Config::default()
+                }
+            }
+        }
     }
 }
 
-pub fn load_config(config_path: Option<&Path>) -> Config {
-    let Some(path) = get_config_path(config_path) else {
-        return Config::default();
+/// Writes config at a specified location
+pub fn write_config(config_path: Option<&Path>, config: Config) {
+    let path = match config_path {
+        Some(p) => p.to_path_buf(),
+        None => get_default_config_path().expect("Cannot find config storage location!"),
     };
-
-    fs::read_to_string(&path)
-        .ok()
-        .and_then(|c| serde_json::from_str(&c).ok())
-        .unwrap_or_else(|| {
-            error!(
-                "Failed to find config file at '{:?}'. Falling back to default config.",
-                path.to_str()
-            );
-            Config::default()
-        })
-}
-
-pub fn write_config(config_path: Option<&Path>) {
-    let Some(path) = get_config_path(config_path) else {
-        error!("Could not determine config path.");
-        return;
-    };
-
-    let config = load_config(config_path);
 
     if let Some(parent) = path.parent() {
         if let Err(e) = fs::create_dir_all(parent) {

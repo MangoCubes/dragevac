@@ -12,6 +12,7 @@ use gtk4::{
 };
 
 use crate::{
+    config::load_config,
     state::{load_default_state, parse_state},
     ui::build_ui,
 };
@@ -67,7 +68,8 @@ fn main() {
 
     match args.command.unwrap_or_default() {
         Command::Config => {
-            config::write_config(config_path.as_deref());
+            let config = load_config(config_path.as_deref());
+            config::write_config(config_path.as_deref(), config);
         }
         Command::NoSave => {
             let app = Application::builder()
