@@ -21,6 +21,28 @@ In some modes of DragEvac, the items you dropped into it are saved so that you c
 ** Basic Keybinds
 - Escape: Immediately quits the program.
 
+* Full =--help= Output
+#+begin_src
+  Quickly drag and drop across multiple windows without having to hold your left mouse button down!
+  
+  Usage: dragevac [OPTIONS] [COMMAND]
+  
+  Commands:
+    config      Writes default config. If config already exists, this will fill out missing fields, delete invalid fields, and write the result back
+    no-save     Default execution method. The entry list is completely empty, and can be filled by dropping items into it. The list is not saved when the program exits
+    temporary   The entry list is saved into a specific directory in /tmp. The entry list state file is updated whenever user adds or removes entries from them. This allows user to have a persistent list that automatically resets when the computer reboots
+    persistent  Stores the entries in a specified location for complete permanence
+    read-only   User cannot drag items into the list. User must specify the state file and/or a preload directory from which the list of entries will be pre-filled
+    help        Print this message or the help of the given subcommand(s)
+  
+  Options:
+    -v, --verbose              Enable verbose output
+        --load <LOAD>          Loads items from a file on startup
+        --load-dir <LOAD_DIR>  Loads all items from a directory as entries on startup
+    -c, --config <CONFIG>      Path to config file
+    -h, --help                 Print help  
+#+end_src
+
 * Building
 #+begin_src rust
   cargo build --release  
