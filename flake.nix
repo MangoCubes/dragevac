@@ -33,9 +33,10 @@
       in
       {
         packages.default = pkgs.rustPlatform.buildRustPackage {
+          inherit buildInputs nativeBuildInputs;
           src = ./.;
           name = "dragevac";
-          cargoHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+          cargoHash = "sha256-SEjkdAXjMPoIUqno0aswVQK3sv7wrIxDItDwhFIQk6w=";
         };
 
         devShells.default = pkgs.mkShell {
