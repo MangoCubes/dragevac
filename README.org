@@ -1,0 +1,32 @@
+:PROPERTIES:
+:ID:       56df45dd-17f8-4106-8f19-66f1b5dc8b36
+:END:
+
+#+TITLE: DragEvac
+#+DATE: 2026-04-26
+
+Load files and text, and drop them faster than Terran players dropping widow mines into your mineral line
+
+* What Does DragEvac Do?
+DragEvac creates a window on your screen where you can drag and drop text and files into it. Once loaded, you can also drag them back out into other programs, as if you dragged them out from the original program. Now you don't get into those situation where you are in the middle of dragging an item into your browser, and you need to click on a link, but you are already holding onto a file.
+
+In some modes of DragEvac, the items you dropped into it are saved so that you can re-launch this program, and drop them back in immediately!
+
+** Program Modes
+- =no-save=: Always start from an empty list. When the program exits, nothing is saved.
+- =temporary=: The items in the list is saved for the current boot. When the computer restarts, the list is automatically emptied.
+- =persistent=: The items in the list is always saved. Nothing changes when you close the program and come back to it later.
+- =read-only=: User specifies the items that should appear in the list. You cannot drag and drop items into the list.
+
+** Basic Keybinds
+- Escape: Immediately quits the program.
+
+* Building
+#+begin_src rust
+  cargo build --release  
+#+end_src
+
+If you have Nix, you can also do the following:
+#+begin_src shell
+  nix build
+#+end_src

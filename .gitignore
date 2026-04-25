@@ -1,3 +1,6 @@
 /target
 /.nvim.lua
 /result
+/README.org~
+/.README.org.~undo-tree~
+/.#README.org
