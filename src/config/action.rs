@@ -1,4 +1,7 @@
+use serde::{Deserialize, Serialize};
+
 /// Take an action when an item is dropped into this card
+#[derive(Serialize, Deserialize, Debug)]
 pub enum OnDrop {
     /// Remove all occurence of that item from the list
     RemoveFromList,
@@ -13,9 +16,16 @@ pub enum OnDrop {
 }
 /// A single [`Action`] item appears as a box in the program window
 /// Whenever you drag an item into the box, the [`Action::command`] is executed.
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Action {
+    /// Text that should appear on the card
+    pub title: String,
+    /// List of additional class names this card will have. Note that the card will still be part of
+    /// [`card`] class.
+    pub class_name: Option<String>,
     /// List of MIME types to accept. If the dropped item matches one of the MIME type, the command
     /// will be executed. If not, nothing will happen.
+    /// Empty list will accept ALL MIME types.
     pub accept: Vec<String>,
     /// Command that will be executed when an item is dropped into it. Instead of putting the whole
     /// command, you should put each part of the command (separated by a space) as an element in the
@@ -30,4 +40,6 @@ pub struct Action {
     pub concat: String,
     /// Optionally take an action when an item is dropped into the list
     pub on_drop: OnDrop,
+    /// If true, disallow dropping items from the DragEvac list and into the list
+    pub block_self_drop: bool,
 }

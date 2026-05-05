@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use crate::config::action::Action;
 use crate::{debug, error};
 
 #[derive(Serialize, Deserialize, Debug, Default)]
@@ -38,6 +39,8 @@ pub struct Config {
     /// its own space so that other windows do not overlap with it. Applicable only if user selected
     /// top/bottom/left. Setting [`Config::expand`] to [`true`] is also recommended.
     pub exclusive: bool,
+    /// Create a set of cards in which user can drop items into to trigger a certain action
+    pub actions: Vec<Action>,
 }
 
 impl Default for Config {
@@ -49,6 +52,7 @@ impl Default for Config {
             anchor: Anchor::default(),
             expand: true,
             exclusive: true,
+            actions: vec![],
         }
     }
 }
