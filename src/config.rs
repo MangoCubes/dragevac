@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::config::action::Action;
+use crate::config::action::{Action, OnDrop};
 use crate::{debug, error};
 
 #[derive(Serialize, Deserialize, Debug, Default)]
@@ -52,7 +52,19 @@ impl Default for Config {
             anchor: Anchor::default(),
             expand: true,
             exclusive: true,
-            actions: vec![],
+            actions: vec![Action {
+                title: "Move to Downloads".to_string(),
+                class_name: None,
+                accept: vec!["text/uri-list".to_string()],
+                command: vec![
+                    "mv".to_string(),
+                    "%ITEMS".to_string(),
+                    "~/Downloads/".to_string(),
+                ],
+                concat: " ".to_string(),
+                on_drop: OnDrop::NoAction,
+                block_self_drop: false,
+            }],
         }
     }
 }
