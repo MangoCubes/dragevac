@@ -1,3 +1,16 @@
+/// Take an action when an item is dropped into this card
+pub enum OnDrop {
+    /// Remove all occurence of that item from the list
+    RemoveFromList,
+    /// Remove the first occurence of that item from the list
+    RemoveFirstFromList,
+    /// Add the dropped item into the list
+    AddToList,
+    /// Add the dropped item into the list, but only if the item is not already in the list
+    AddToListUnique,
+    /// Do nothing
+    NoAction,
+}
 /// A single [`Action`] item appears as a box in the program window
 /// Whenever you drag an item into the box, the [`Action::command`] is executed.
 pub struct Action {
@@ -15,4 +28,6 @@ pub struct Action {
     /// If multiple items are dropped into this area and %ITEMS is present, then they will be
     /// concatenated with this string between them.
     pub concat: String,
+    /// Optionally take an action when an item is dropped into the list
+    pub on_drop: OnDrop,
 }
