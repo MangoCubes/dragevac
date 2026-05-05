@@ -7,7 +7,7 @@ use gtk4::gio::{Cancellable, File};
 use gtk4::glib::value::ToValue;
 use gtk4::glib::{self, Priority, Propagation};
 use gtk4::prelude::{BoxExt, FileExt, GtkWindowExt, StaticType, WidgetExt};
-use gtk4::{Align, Box};
+use gtk4::{Align, Box, Separator};
 use gtk4::{
     Application, ApplicationWindow, CssProvider, DragSource, DropTargetAsync, EventControllerKey,
     Label, ListBox, Orientation,
@@ -134,6 +134,9 @@ pub fn build_ui(
     let text_formats = ContentFormats::new(&["text/uri-list", "text/plain"]);
     let file_formats = ContentFormats::for_type(FileList::static_type());
     let combined_formats = text_formats.union(&file_formats);
+
+    let divider = Separator::builder().build();
+    vbox.append(&divider);
 
     let cards_box = Box::new(Orientation::Horizontal, 0);
     cards_box.set_halign(Align::Center);

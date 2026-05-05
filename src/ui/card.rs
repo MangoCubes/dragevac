@@ -1,5 +1,5 @@
 use gtk4::{
-    Align, DropTargetAsync, Label,
+    Align, DropTargetAsync, Frame, Label,
     gdk::{ContentFormats, DragAction, FileList},
     gio::{Cancellable, prelude::FileExt},
     glib::{self, Priority, types::StaticType},
@@ -11,8 +11,10 @@ use crate::{debug, error};
 pub struct Card {}
 
 impl Card {
-    pub fn new(name: String) -> gtk4::Frame {
-        let card = gtk4::Frame::builder().css_classes(["card"]).build();
+    pub fn new(name: String) -> Frame {
+        let card = Frame::builder()
+            .css_classes(["action-card", "card"])
+            .build();
 
         let text_formats = ContentFormats::new(&["text/uri-list", "text/plain"]);
         let file_formats = ContentFormats::for_type(FileList::static_type());

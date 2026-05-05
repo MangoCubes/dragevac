@@ -5,6 +5,11 @@ window {
 	margin: 4px;
 }
 
+separator {
+	margin-top: 4px;
+	margin-bottom: 4px;
+}
+
 label {
 	color: white;
 	text-shadow: 0px 0px 2px rgb(71, 200, 192), 0px 0px 2px rgb(71, 200, 192);
