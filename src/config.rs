@@ -48,7 +48,7 @@ impl Default for Config {
             keep_text: true,
             anchor: Anchor::default(),
             expand: true,
-            exclusive: false,
+            exclusive: true,
         }
     }
 }

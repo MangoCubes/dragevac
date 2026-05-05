@@ -8,6 +8,13 @@ window {
 separator {
 	margin-top: 4px;
 	margin-bottom: 4px;
+	background-color: rgba(90, 103, 107, 1);
+}
+
+.card {
+	min-width: 100px;
+	min-height: 100px;
+	border: 1px solid rgba(90, 103, 107, 1);
 }
 
 label {
