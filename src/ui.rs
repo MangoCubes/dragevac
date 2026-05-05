@@ -1,3 +1,4 @@
+mod card;
 use std::sync::{Arc, Mutex};
 
 use gtk4::gdk::{ContentFormats, ContentProvider, Display, DragAction, FileList, Key};
@@ -17,6 +18,7 @@ use std::path::{Path, PathBuf};
 
 use crate::config::load_config;
 use crate::state::{DropItem, StateLocation};
+use crate::ui::card::Card;
 use crate::{debug, error};
 
 pub fn build_ui(
@@ -132,6 +134,13 @@ pub fn build_ui(
     let text_formats = ContentFormats::new(&["text/uri-list", "text/plain"]);
     let file_formats = ContentFormats::for_type(FileList::static_type());
     let combined_formats = text_formats.union(&file_formats);
+
+    let cards_box = Box::new(Orientation::Horizontal, 0);
+    cards_box.set_halign(Align::Center);
+    let card = Card::new("Test card".to_owned());
+    cards_box.append(&card);
+
+    vbox.append(&cards_box);
 
     if !matches!(save, StateLocation::ReadOnly(_)) {
         let drop_target = DropTargetAsync::new(Some(combined_formats), DragAction::COPY);
