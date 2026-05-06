@@ -16,7 +16,7 @@ use gtk4_layer_shell::{Edge, KeyboardMode, Layer, LayerShell};
 
 use std::path::{Path, PathBuf};
 
-use crate::config::load_config;
+use crate::config::io::load_config;
 use crate::state::{DropItem, StateLocation};
 use crate::ui::card::Card;
 use crate::{debug, error};

@@ -11,7 +11,11 @@ use gtk4::{
     gio::prelude::{ApplicationExt, ApplicationExtManual},
 };
 
-use crate::{config::load_config, state::StateLocation, ui::build_ui};
+use crate::{
+    config::io::{load_config, write_config},
+    state::StateLocation,
+    ui::build_ui,
+};
 
 #[derive(Parser)]
 #[command(
@@ -99,7 +103,7 @@ fn main() {
     match &cmd {
         Command::Config => {
             let config = load_config(config_path.as_deref());
-            config::write_config(config_path.as_deref(), config);
+            write_config(config_path.as_deref(), config);
         }
         _ => {
             let app = build_app();
