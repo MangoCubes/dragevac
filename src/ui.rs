@@ -140,8 +140,17 @@ pub fn build_ui(
 
     let cards_box = Box::new(Orientation::Horizontal, 0);
     cards_box.set_halign(Align::Center);
-    let card = Card::new("Test card".to_owned());
-    cards_box.append(&card);
+    for action in config.actions {
+        let card = Card::new(
+            action,
+            items.clone(),
+            list_box.clone(),
+            save.clone(),
+            placeholder.clone(),
+            config.keep_text,
+        );
+        cards_box.append(&card);
+    }
 
     vbox.append(&cards_box);
 
@@ -260,7 +269,7 @@ pub fn build_ui(
     window.present();
 }
 
-fn add_row_to_list(list_box: &ListBox, _items: &Arc<Mutex<Vec<DropItem>>>, item: DropItem) {
+pub fn add_row_to_list(list_box: &ListBox, _items: &Arc<Mutex<Vec<DropItem>>>, item: DropItem) {
     let row = Box::new(Orientation::Horizontal, 8);
 
     let name = Label::new(Some(&item.display_name));

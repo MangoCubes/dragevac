@@ -58,7 +58,7 @@ impl Default for Config {
                 command: vec![
                     "mv".to_string(),
                     "%ITEMS".to_string(),
-                    "~/Downloads/".to_string(),
+                    "%HOME/Downloads/".to_string(),
                 ],
                 concat: " ".to_string(),
                 on_drop: OnDrop::NoAction,

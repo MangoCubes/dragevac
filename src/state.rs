@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::{debug, error};
 
 /// Single item dragged into the list
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
 pub struct DropItem {
     pub display_name: String,
     pub data: String,

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Take an action when an item is dropped into this card
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum OnDrop {
     /// Remove all occurence of that item from the list
     RemoveFromList,
@@ -16,7 +16,7 @@ pub enum OnDrop {
 }
 /// A single [`Action`] item appears as a box in the program window
 /// Whenever you drag an item into the box, the [`Action::command`] is executed.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Action {
     /// Text that should appear on the card
     pub title: String,
@@ -26,6 +26,8 @@ pub struct Action {
     /// List of MIME types to accept. If the dropped item matches one of the MIME type, the command
     /// will be executed. If not, nothing will happen.
     /// Empty list will accept ALL MIME types.
+    /// Currently, this program assumes that you are dropping in files. If you drop a text in,
+    /// unexpected things (probably nothing) will happen.
     pub accept: Vec<String>,
     /// Command that will be executed when an item is dropped into it. Instead of putting the whole
     /// command, you should put each part of the command (separated by a space) as an element in the
@@ -34,6 +36,14 @@ pub struct Action {
     ///
     /// If %ITEMS is present, it will be replaced with the items you dropped into the box,
     /// concatenated by [`Action::concat`]. If you need to enter %ITEMS literally, enter %%ITEMS.
+    /// There is also %URIS, which preserves the prefix (file:///). For example, a file in
+    /// ~/Downloads/notes.txt will appear as follows:
+    ///
+    /// %ITEMS: /home/user/Downloads/notes.txt
+    /// %URIS: file:///home/user/Downloads/notes.txt
+    ///
+    /// Similarly, use %HOME to specify your home directory. Environment variable $HOME will be
+    /// used. Use %%HOME if you must type %HOME.
     pub command: Vec<String>,
     /// If multiple items are dropped into this area and %ITEMS is present, then they will be
     /// concatenated with this string between them.
