@@ -5,9 +5,9 @@ use gtk4::gdk::{ContentFormats, ContentProvider, Display, DragAction, FileList, 
 use gtk4::gio::prelude::ApplicationExt;
 use gtk4::gio::{Cancellable, File};
 use gtk4::glib::value::ToValue;
-use gtk4::glib::{self, Priority, Propagation};
-use gtk4::prelude::{BoxExt, FileExt, GtkWindowExt, StaticType, WidgetExt};
-use gtk4::{Align, Box, Separator};
+use gtk4::glib::{self, Bytes, Priority, Propagation};
+use gtk4::prelude::{BoxExt, FileExt, GtkWindowExt, ListBoxRowExt, StaticType, WidgetExt};
+use gtk4::{Align, Box, SelectionMode, Separator};
 use gtk4::{
     Application, ApplicationWindow, CssProvider, DragSource, DropTargetAsync, EventControllerKey,
     Label, ListBox, Orientation,
@@ -123,6 +123,7 @@ pub fn build_ui(
     }
 
     let list_box = ListBox::new();
+    list_box.set_selection_mode(SelectionMode::Multiple);
 
     for item in state {
         add_row_to_list(&list_box, &items, item);
@@ -269,7 +270,7 @@ pub fn build_ui(
     window.present();
 }
 
-pub fn add_row_to_list(list_box: &ListBox, _items: &Arc<Mutex<Vec<DropItem>>>, item: DropItem) {
+pub fn add_row_to_list(list_box: &ListBox, items: &Arc<Mutex<Vec<DropItem>>>, item: DropItem) {
     let row = Box::new(Orientation::Horizontal, 8);
 
     let name = Label::new(Some(&item.display_name));
@@ -284,12 +285,33 @@ pub fn add_row_to_list(list_box: &ListBox, _items: &Arc<Mutex<Vec<DropItem>>>, i
     let drag_source = DragSource::new();
     drag_source.set_actions(DragAction::COPY);
 
+    let list_box_clone = list_box.clone();
+    let items_clone = items.clone();
+
     drag_source.connect_prepare(move |_source, _x, _y| {
-        if item.mime_type == "text/plain" {
-            Some(ContentProvider::for_value(&item.data.to_value()))
+        let selected_items: Vec<DropItem> = list_box_clone
+            .selected_rows()
+            .iter_mut()
+            .map(|row| {
+                let items_lock = items_clone.lock().unwrap();
+                items_lock[row.index() as usize].clone()
+            })
+            .collect();
+        let all_uris = selected_items
+            .iter()
+            .all(|i| i.mime_type == "text/uri-list");
+        let text = selected_items
+            .iter()
+            .map(|i| i.data.clone())
+            .collect::<Vec<String>>()
+            .join("\n");
+        if all_uris {
+            Some(ContentProvider::for_bytes(
+                "text/uri-list",
+                &Bytes::from(text.as_bytes()),
+            ))
         } else {
-            let bytes = glib::Bytes::from(item.data.as_bytes());
-            Some(ContentProvider::for_bytes(&item.mime_type, &bytes))
+            Some(ContentProvider::for_value(&text.to_value()))
         }
     });
 
