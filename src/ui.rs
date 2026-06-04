@@ -113,7 +113,7 @@ pub fn build_ui(
 
     window.add_controller(key_controller);
 
-    let items: Arc<Mutex<Vec<DropItem>>> = Arc::new(Mutex::new(state.clone()));
+    let items = Arc::new(Mutex::new(state.clone()));
 
     let vbox = Box::new(Orientation::Vertical, 0);
 
@@ -270,7 +270,7 @@ pub fn build_ui(
     window.present();
 }
 
-pub fn add_row_to_list(list_box: &ListBox, items: &Arc<Mutex<Vec<DropItem>>>, item: DropItem) {
+pub fn add_row_to_list(listbox: &ListBox, items: &Arc<Mutex<Vec<DropItem>>>, item: DropItem) {
     let row = Box::new(Orientation::Horizontal, 8);
 
     let name = Label::new(Some(&item.display_name));
@@ -285,13 +285,13 @@ pub fn add_row_to_list(list_box: &ListBox, items: &Arc<Mutex<Vec<DropItem>>>, it
     let drag_source = DragSource::new();
     drag_source.set_actions(DragAction::COPY);
 
-    let list_box_clone = list_box.clone();
+    let list_box_clone = listbox.clone();
     let items_clone = items.clone();
 
-    drag_source.connect_prepare(move |_source, _x, _y| {
+    drag_source.connect_prepare(move |_, _, _| {
         let selected_items: Vec<DropItem> = list_box_clone
             .selected_rows()
-            .iter_mut()
+            .iter()
             .map(|row| {
                 let items_lock = items_clone.lock().unwrap();
                 items_lock[row.index() as usize].clone()
@@ -315,7 +315,5 @@ pub fn add_row_to_list(list_box: &ListBox, items: &Arc<Mutex<Vec<DropItem>>>, it
         }
     });
 
-    row.add_controller(drag_source);
-
-    list_box.append(&row);
+    listbox.append(&row);
 }

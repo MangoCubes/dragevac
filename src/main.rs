@@ -98,6 +98,7 @@ fn main() {
             .application_id("ch.skew.dragevac")
             .build()
     }
+
     let cmd = args.command.unwrap_or_default();
 
     match &cmd {
@@ -114,6 +115,9 @@ fn main() {
                     config_path.as_deref(),
                     save,
                     args.load.clone(),
+                    #[cfg(debug_assertions)]
+                    vec![PathBuf::from("/home/main/Downloads/")],
+                    #[cfg(not(debug_assertions))]
                     args.load_dir.clone(),
                 )
             });
