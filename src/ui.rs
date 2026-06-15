@@ -314,6 +314,7 @@ pub fn add_row_to_list(listbox: &ListBox, items: &Arc<Mutex<Vec<DropItem>>>, ite
             Some(ContentProvider::for_value(&text.to_value()))
         }
     });
+    row.add_controller(drag_source);
 
     listbox.append(&row);
 }
