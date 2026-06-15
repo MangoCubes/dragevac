@@ -1,16 +1,20 @@
 mod card;
 use std::sync::{Arc, Mutex};
 
-use gtk4::gdk::{ContentFormats, ContentProvider, Display, DragAction, FileList, Key};
+use gtk4::gdk::{
+    ContentFormats, ContentProvider, Display, DragAction, FileList, Key, ModifierType,
+};
 use gtk4::gio::prelude::ApplicationExt;
 use gtk4::gio::{Cancellable, File};
 use gtk4::glib::value::ToValue;
 use gtk4::glib::{self, Bytes, Priority, Propagation};
-use gtk4::prelude::{BoxExt, FileExt, GtkWindowExt, ListBoxRowExt, StaticType, WidgetExt};
+use gtk4::prelude::{
+    BoxExt, EventControllerExt, FileExt, GtkWindowExt, ListBoxRowExt, StaticType, WidgetExt,
+};
 use gtk4::{Align, Box, SelectionMode, Separator};
 use gtk4::{
     Application, ApplicationWindow, CssProvider, DragSource, DropTargetAsync, EventControllerKey,
-    Label, ListBox, Orientation,
+    GestureClick, Label, ListBox, Orientation,
 };
 use gtk4_layer_shell::{Edge, KeyboardMode, Layer, LayerShell};
 
@@ -128,6 +132,18 @@ pub fn build_ui(
     for item in state {
         add_row_to_list(&list_box, &items, item);
     }
+
+    let click_controller = GestureClick::new();
+    let lb2 = list_box.clone();
+    click_controller.connect_released(move |gesture, _, _, _| {
+        if !gesture
+            .current_event_state()
+            .contains(ModifierType::CONTROL_MASK)
+        {
+            lb2.unselect_all();
+        }
+    });
+    list_box.add_controller(click_controller);
 
     vbox.append(&placeholder);
     vbox.append(&list_box);
