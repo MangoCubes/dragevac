@@ -189,7 +189,14 @@ impl Card {
                 None::<&Cancellable>,
                 move |result| match result {
                     Ok(fl) => {
-                        let file_list: FileList = fl.get().unwrap();
+                        let file_list: FileList = match fl.get() {
+                            Ok(f) => f,
+                            Err(err) => {
+                                error!("Card failed to read files: {}", err);
+                                drop_ref.finish(DragAction::empty());
+                                return;
+                            }
+                        };
                         let drops = file_list
                             .files()
                             .iter()
