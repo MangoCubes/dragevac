@@ -74,12 +74,12 @@ impl Card {
 
             // Handler
             let handle_dropped_items = move |drops: Vec<DropItem>| {
-                let uris_str = drops
+                let uris = drops
                     .iter()
                     .map(|i| i.data.clone())
-                    .collect::<Vec<String>>()
-                    .join(&action_clone.concat);
-                let paths_str = drops
+                    .collect::<Vec<String>>();
+                let uris_str = uris.join(&action_clone.concat);
+                let paths = drops
                     .iter()
                     .map(|i| {
                         if i.mime_type == "text/uri-list" {
@@ -91,30 +91,42 @@ impl Card {
                             i.data.clone()
                         }
                     })
-                    .collect::<Vec<String>>()
-                    .join(&action_clone.concat);
+                    .collect::<Vec<String>>();
+                let paths_str = paths.join(&action_clone.concat);
                 let home_str =
                     std::env::var("HOME").expect("Can't get environment variable $HOME.");
 
-                let args: Vec<String> = action_clone
-                    .command
-                    .iter()
-                    .map(|arg| {
-                        arg.replace("%%ITEMS", "\0ITEMS\0")
-                            .replace("%%HOME", "\0HOME\0")
-                            .replace("%%URIS", "\0URIS\0")
-                            .replace("%ITEMS", &paths_str)
-                            .replace("%HOME", &home_str)
-                            .replace("%URIS", &uris_str)
-                            .replace("\0ITEMS\0", "%ITEMS")
-                            .replace("\0HOME\0", "%HOME")
-                            .replace("\0URIS\0", "%URIS")
-                    })
-                    .collect();
+                let processed: Vec<String> =
+                    action_clone
+                        .command
+                        .into_iter()
+                        .fold(Vec::new(), |mut acc, arg| {
+                            match arg.as_str() {
+                                "%%ITEMS" => acc.push("%ITEMS".to_owned()),
+                                "%ITEMS" => acc.extend(paths.clone()),
+                                "%%URIS" => acc.push("%URIS".to_owned()),
+                                "%URIS" => acc.extend(uris.clone()),
+                                other => {
+                                    let replaced = other
+                                        .replace("%%ITEMSSTR", "\0ITEMSSTR\0")
+                                        .replace("%%HOME", "\0HOME\0")
+                                        .replace("%%URISSTR", "\0URISSTR\0")
+                                        .replace("%ITEMSSTR", &paths_str)
+                                        .replace("%HOME", &home_str)
+                                        .replace("%URISSTR", &uris_str)
+                                        .replace("\0ITEMSSTR\0", "%ITEMSSTR")
+                                        .replace("\0HOME\0", "%HOME")
+                                        .replace("\0URISSTR\0", "%URISSTR");
 
-                if let Some((cmd, args_slice)) = args.split_first() {
+                                    acc.push(replaced);
+                                }
+                            };
+                            acc
+                        });
+
+                if let Some((cmd, args_slice)) = processed.split_first() {
                     match std::process::Command::new(cmd).args(args_slice).spawn() {
-                        Ok(_) => debug!("Executed command: {:?}", args),
+                        Ok(_) => debug!("Executed command: {:?}", processed),
                         Err(e) => error!("Failed to execute command: {}", e),
                     }
                 }
