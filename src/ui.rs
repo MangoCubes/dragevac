@@ -1,22 +1,28 @@
+mod card;
 use std::sync::{Arc, Mutex};
 
-use gtk4::gdk::{ContentFormats, ContentProvider, Display, DragAction, FileList, Key};
+use gtk4::gdk::{
+    ContentFormats, ContentProvider, Display, DragAction, FileList, Key, ModifierType,
+};
 use gtk4::gio::prelude::ApplicationExt;
 use gtk4::gio::{Cancellable, File};
 use gtk4::glib::value::ToValue;
-use gtk4::glib::{self, Priority, Propagation};
-use gtk4::prelude::{BoxExt, FileExt, GtkWindowExt, StaticType, WidgetExt};
-use gtk4::{Align, Box};
+use gtk4::glib::{self, Bytes, Priority, Propagation};
+use gtk4::prelude::{
+    BoxExt, EventControllerExt, FileExt, GtkWindowExt, ListBoxRowExt, StaticType, WidgetExt,
+};
+use gtk4::{Align, Box, SelectionMode, Separator};
 use gtk4::{
     Application, ApplicationWindow, CssProvider, DragSource, DropTargetAsync, EventControllerKey,
-    Label, ListBox, Orientation,
+    GestureClick, Label, ListBox, Orientation,
 };
 use gtk4_layer_shell::{Edge, KeyboardMode, Layer, LayerShell};
 
 use std::path::{Path, PathBuf};
 
-use crate::config::load_config;
+use crate::config::io::load_config;
 use crate::state::{DropItem, StateLocation};
+use crate::ui::card::Card;
 use crate::{debug, error};
 
 pub fn build_ui(
@@ -111,7 +117,7 @@ pub fn build_ui(
 
     window.add_controller(key_controller);
 
-    let items: Arc<Mutex<Vec<DropItem>>> = Arc::new(Mutex::new(state.clone()));
+    let items = Arc::new(Mutex::new(state.clone()));
 
     let vbox = Box::new(Orientation::Vertical, 0);
 
@@ -121,10 +127,23 @@ pub fn build_ui(
     }
 
     let list_box = ListBox::new();
+    list_box.set_selection_mode(SelectionMode::Multiple);
 
     for item in state {
         add_row_to_list(&list_box, &items, item);
     }
+
+    let click_controller = GestureClick::new();
+    let lb2 = list_box.clone();
+    click_controller.connect_released(move |gesture, _, _, _| {
+        if !gesture
+            .current_event_state()
+            .contains(ModifierType::CONTROL_MASK)
+        {
+            lb2.unselect_all();
+        }
+    });
+    list_box.add_controller(click_controller);
 
     vbox.append(&placeholder);
     vbox.append(&list_box);
@@ -132,6 +151,25 @@ pub fn build_ui(
     let text_formats = ContentFormats::new(&["text/uri-list", "text/plain"]);
     let file_formats = ContentFormats::for_type(FileList::static_type());
     let combined_formats = text_formats.union(&file_formats);
+
+    let divider = Separator::builder().build();
+    vbox.append(&divider);
+
+    let cards_box = Box::new(Orientation::Horizontal, 0);
+    cards_box.set_halign(Align::Center);
+    for action in config.actions {
+        let card = Card::new(
+            action,
+            items.clone(),
+            list_box.clone(),
+            save.clone(),
+            placeholder.clone(),
+            config.keep_text,
+        );
+        cards_box.append(&card);
+    }
+
+    vbox.append(&cards_box);
 
     if !matches!(save, StateLocation::ReadOnly(_)) {
         let drop_target = DropTargetAsync::new(Some(combined_formats), DragAction::COPY);
@@ -248,7 +286,7 @@ pub fn build_ui(
     window.present();
 }
 
-fn add_row_to_list(list_box: &ListBox, _items: &Arc<Mutex<Vec<DropItem>>>, item: DropItem) {
+pub fn add_row_to_list(listbox: &ListBox, items: &Arc<Mutex<Vec<DropItem>>>, item: DropItem) {
     let row = Box::new(Orientation::Horizontal, 8);
 
     let name = Label::new(Some(&item.display_name));
@@ -263,16 +301,36 @@ fn add_row_to_list(list_box: &ListBox, _items: &Arc<Mutex<Vec<DropItem>>>, item:
     let drag_source = DragSource::new();
     drag_source.set_actions(DragAction::COPY);
 
-    drag_source.connect_prepare(move |_source, _x, _y| {
-        if item.mime_type == "text/plain" {
-            Some(ContentProvider::for_value(&item.data.to_value()))
+    let list_box_clone = listbox.clone();
+    let items_clone = items.clone();
+
+    drag_source.connect_prepare(move |_, _, _| {
+        let selected_items: Vec<DropItem> = list_box_clone
+            .selected_rows()
+            .iter()
+            .map(|row| {
+                let items_lock = items_clone.lock().unwrap();
+                items_lock[row.index() as usize].clone()
+            })
+            .collect();
+        let all_uris = selected_items
+            .iter()
+            .all(|i| i.mime_type == "text/uri-list");
+        let text = selected_items
+            .iter()
+            .map(|i| i.data.clone())
+            .collect::<Vec<String>>()
+            .join("\n");
+        if all_uris {
+            Some(ContentProvider::for_bytes(
+                "text/uri-list",
+                &Bytes::from(text.as_bytes()),
+            ))
         } else {
-            let bytes = glib::Bytes::from(item.data.as_bytes());
-            Some(ContentProvider::for_bytes(&item.mime_type, &bytes))
+            Some(ContentProvider::for_value(&text.to_value()))
         }
     });
-
     row.add_controller(drag_source);
 
-    list_box.append(&row);
+    listbox.append(&row);
 }

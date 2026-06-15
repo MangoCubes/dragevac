@@ -11,7 +11,11 @@ use gtk4::{
     gio::prelude::{ApplicationExt, ApplicationExtManual},
 };
 
-use crate::{config::load_config, state::StateLocation, ui::build_ui};
+use crate::{
+    config::io::{load_config, write_config},
+    state::StateLocation,
+    ui::build_ui,
+};
 
 #[derive(Parser)]
 #[command(
@@ -94,12 +98,13 @@ fn main() {
             .application_id("ch.skew.dragevac")
             .build()
     }
+
     let cmd = args.command.unwrap_or_default();
 
     match &cmd {
         Command::Config => {
             let config = load_config(config_path.as_deref());
-            config::write_config(config_path.as_deref(), config);
+            write_config(config_path.as_deref(), config);
         }
         _ => {
             let app = build_app();
@@ -110,6 +115,9 @@ fn main() {
                     config_path.as_deref(),
                     save,
                     args.load.clone(),
+                    #[cfg(debug_assertions)]
+                    vec![PathBuf::from("/home/main/Downloads/")],
+                    #[cfg(not(debug_assertions))]
                     args.load_dir.clone(),
                 )
             });

@@ -5,6 +5,18 @@ window {
 	margin: 4px;
 }
 
+separator {
+	margin-top: 4px;
+	margin-bottom: 4px;
+	background-color: rgba(90, 103, 107, 1);
+}
+
+.card {
+	min-width: 100px;
+	min-height: 100px;
+	border: 1px solid rgba(90, 103, 107, 1);
+}
+
 label {
 	color: white;
 	text-shadow: 0px 0px 2px rgb(71, 200, 192), 0px 0px 2px rgb(71, 200, 192);
