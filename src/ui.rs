@@ -339,6 +339,11 @@ fn navigate_into_dir(
 pub fn add_row_to_list(listbox: &ListBox, items: &Arc<Mutex<Vec<DropItem>>>, item: DropItem) {
     let row = Box::new(Orientation::Horizontal, 8);
 
+    if item.item.is_dir() {
+        let icon = Label::new(Some(" "));
+        row.append(&icon);
+    }
+
     let name = Label::new(Some(&item.display_name));
     name.set_hexpand(true);
     name.set_halign(Align::Start);
