@@ -38,6 +38,8 @@ pub struct Config {
     /// its own space so that other windows do not overlap with it. Applicable only if user selected
     /// top/bottom/left. Setting [`Config::expand`] to [`true`] is also recommended.
     pub exclusive: bool,
+    /// Height of the list, measured in pixels
+    pub list_height: i32,
     /// Create a set of cards in which user can drop items into to trigger a certain action
     pub actions: Vec<Action>,
 }
@@ -51,6 +53,7 @@ impl Default for Config {
             anchor: Anchor::default(),
             expand: true,
             exclusive: true,
+            list_height: 200,
             actions: vec![Action {
                 title: "Move to Downloads".to_string(),
                 class_name: None,

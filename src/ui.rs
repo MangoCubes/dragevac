@@ -13,7 +13,7 @@ use gtk4::prelude::{
     BoxExt, EventControllerExt, FileExt, GestureExt, GtkWindowExt, ListBoxRowExt, StaticType,
     WidgetExt,
 };
-use gtk4::{Align, Box, EventSequenceState, SelectionMode, Separator};
+use gtk4::{Align, Box, EventSequenceState, PolicyType, ScrolledWindow, SelectionMode, Separator};
 use gtk4::{
     Application, ApplicationWindow, CssProvider, DragSource, DropTargetAsync, EventControllerKey,
     GestureClick, Label, ListBox, Orientation,
@@ -131,7 +131,14 @@ pub fn build_ui(
     list_box.add_controller(click_controller);
 
     vbox.append(&placeholder);
-    vbox.append(&list_box);
+
+    let scroll = ScrolledWindow::builder()
+        .hscrollbar_policy(PolicyType::Never)
+        .vscrollbar_policy(PolicyType::Automatic)
+        .child(&list_box)
+        .build();
+    scroll.set_size_request(-1, config.list_height);
+    vbox.append(&scroll);
 
     let text_formats = ContentFormats::new(&["text/uri-list", "text/plain"]);
     let file_formats = ContentFormats::for_type(FileList::static_type());
