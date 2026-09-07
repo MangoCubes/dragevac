@@ -1,4 +1,5 @@
 mod card;
+use std::fs;
 use std::sync::{Arc, Mutex};
 
 use gtk4::gdk::{
@@ -9,9 +10,10 @@ use gtk4::gio::{Cancellable, File};
 use gtk4::glib::value::ToValue;
 use gtk4::glib::{self, Bytes, Priority, Propagation};
 use gtk4::prelude::{
-    BoxExt, EventControllerExt, FileExt, GtkWindowExt, ListBoxRowExt, StaticType, WidgetExt,
+    BoxExt, EventControllerExt, FileExt, GestureExt, GtkWindowExt, ListBoxRowExt, StaticType,
+    WidgetExt,
 };
-use gtk4::{Align, Box, SelectionMode, Separator};
+use gtk4::{Align, Box, EventSequenceState, SelectionMode, Separator};
 use gtk4::{
     Application, ApplicationWindow, CssProvider, DragSource, DropTargetAsync, EventControllerKey,
     GestureClick, Label, ListBox, Orientation,
@@ -35,7 +37,7 @@ pub fn build_ui(
     let config = load_config(config_path);
     let mut state = save.load_state();
     for path in load_paths {
-        if let Ok(s) = std::fs::read_to_string(&path) {
+        if let Ok(s) = fs::read_to_string(&path) {
             match serde_json::from_str::<Vec<DropItem>>(&s) {
                 Ok(items) => state.extend(items),
                 Err(e) => error!("Failed to parse load file: {}", e),
@@ -44,29 +46,12 @@ pub fn build_ui(
             error!("Failed to read load file: {:?}", path);
         }
     }
-    for dir in load_dirs {
-        if let Ok(entries) = std::fs::read_dir(&dir) {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                if let Ok(abs_path) = std::fs::canonicalize(&path) {
-                    let file = File::for_path(&abs_path);
-                    let uri = file.uri().to_string();
-                    let name = file
-                        .basename()
-                        .map(|b| b.display().to_string())
-                        .unwrap_or_else(|| uri.clone());
 
-                    state.push(DropItem {
-                        display_name: name,
-                        data: uri,
-                        mime_type: "text/uri-list".to_string(),
-                    });
-                }
-            }
-        } else {
-            error!("Failed to read load dir: {:?}", dir);
-        }
-    }
+    load_dirs.into_iter().for_each(|d| match list_dir(&d) {
+        Ok(mut items) => state.append(&mut items),
+        Err(err) => error!("{}", err),
+    });
+
     debug!("Loaded config: {:?}", config);
     debug!("Loaded state: {:?}", state);
     let window = ApplicationWindow::builder()
@@ -286,6 +271,50 @@ pub fn build_ui(
     window.present();
 }
 
+fn list_dir(dir: &Path) -> Result<Vec<DropItem>, String> {
+    match fs::read_dir(dir) {
+        Err(e) => Err(format!("Failed to read directory {:?}: {}", dir, e)),
+        Ok(entries) => Ok(entries
+            .flatten()
+            .filter_map(|entry| {
+                let file = File::for_path(&fs::canonicalize(&entry.path()).ok()?);
+                let uri = file.uri().to_string();
+                let name = file
+                    .basename()
+                    .map(|b| b.display().to_string())
+                    .unwrap_or_else(|| uri.clone());
+                Some(DropItem {
+                    display_name: name,
+                    data: uri,
+                    mime_type: "text/uri-list".to_string(),
+                })
+            })
+            .collect()),
+    }
+}
+
+fn navigate_into_dir(
+    listbox: &ListBox,
+    items: &Arc<Mutex<Vec<DropItem>>>,
+    dir: &Path,
+) -> Result<(), String> {
+    while let Some(child) = listbox.first_child() {
+        listbox.remove(&child);
+    }
+
+    let new_items = list_dir(dir)?;
+
+    let mut lock = items.lock().unwrap();
+    *lock = new_items.clone();
+    drop(lock);
+
+    for item in new_items {
+        add_row_to_list(listbox, items, item);
+    }
+
+    Ok(())
+}
+
 pub fn add_row_to_list(listbox: &ListBox, items: &Arc<Mutex<Vec<DropItem>>>, item: DropItem) {
     let row = Box::new(Orientation::Horizontal, 8);
 
@@ -297,6 +326,30 @@ pub fn add_row_to_list(listbox: &ListBox, items: &Arc<Mutex<Vec<DropItem>>>, ite
 
     row.append(&name);
     row.append(&mime);
+
+    let double_click = GestureClick::new();
+    let listbox2 = listbox.clone();
+    let items2 = items.clone();
+    let item2 = item.clone();
+
+    double_click.connect_released(move |gesture, count, _, _| {
+        if count < 2 {
+            return;
+        }
+        gesture.set_state(EventSequenceState::Claimed);
+        if item2.mime_type != "text/uri-list" {
+            return;
+        }
+        if let Some(p) = File::for_uri(&item2.data).path() {
+            if p.is_dir() {
+                if let Err(e) = navigate_into_dir(&listbox2, &items2, &p) {
+                    error!("{}", e);
+                };
+            }
+        }
+    });
+
+    row.add_controller(double_click);
 
     let drag_source = DragSource::new();
     drag_source.set_actions(DragAction::COPY);
