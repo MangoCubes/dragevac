@@ -23,7 +23,7 @@ use gtk4_layer_shell::{Edge, KeyboardMode, Layer, LayerShell};
 use std::path::{Path, PathBuf};
 
 use crate::config::io::load_config;
-use crate::state::{DropItem, StateLocation};
+use crate::state::{DropItem, ItemData, StateLocation};
 use crate::ui::card::Card;
 use crate::{debug, error};
 
@@ -192,11 +192,13 @@ pub fn build_ui(
                                     .basename()
                                     .map(|p| p.display().to_string())
                                     .unwrap_or_else(|| uri.clone());
-
                                 let item = DropItem {
                                     display_name: name,
-                                    data: uri,
-                                    mime_type: "text/uri-list".to_string(),
+                                    item: if file.path().map_or(false, |p| p.is_dir()) {
+                                        ItemData::Dir(uri)
+                                    } else {
+                                        ItemData::File(uri)
+                                    },
                                 };
 
                                 {
@@ -236,8 +238,7 @@ pub fn build_ui(
 
                             let item = DropItem {
                                 display_name: text.clone(),
-                                data: text,
-                                mime_type: "text/plain".to_string(),
+                                item: ItemData::File(text),
                             };
 
                             {
@@ -278,7 +279,8 @@ fn list_dir(dir: &Path) -> Result<Vec<DropItem>, String> {
             let mut items: Vec<DropItem> = entries
                 .flatten()
                 .filter_map(|entry| {
-                    let file = File::for_path(&fs::canonicalize(&entry.path()).ok()?);
+                    let path = fs::canonicalize(&entry.path()).ok()?;
+                    let file = File::for_path(&path);
                     let uri = file.uri().to_string();
                     let name = file
                         .basename()
@@ -286,15 +288,18 @@ fn list_dir(dir: &Path) -> Result<Vec<DropItem>, String> {
                         .unwrap_or_else(|| uri.clone());
                     Some(DropItem {
                         display_name: name,
-                        data: uri,
-                        mime_type: "text/uri-list".to_string(),
+                        item: if path.is_dir() {
+                            ItemData::Dir(uri)
+                        } else {
+                            ItemData::File(uri)
+                        },
                     })
                 })
                 .collect();
             items.sort_by(|a, b| {
-                let ad = File::for_uri(&a.data).path().map_or(false, |p| p.is_dir());
-                let bd = File::for_uri(&b.data).path().map_or(false, |p| p.is_dir());
-                bd.cmp(&ad)
+                b.item
+                    .is_dir()
+                    .cmp(&a.item.is_dir())
                     .then_with(|| a.display_name.cmp(&b.display_name))
             });
             Ok(items)
@@ -331,7 +336,7 @@ pub fn add_row_to_list(listbox: &ListBox, items: &Arc<Mutex<Vec<DropItem>>>, ite
     name.set_hexpand(true);
     name.set_halign(Align::Start);
 
-    let mime = Label::new(Some(&item.mime_type));
+    let mime = Label::new(Some(item.item.mime()));
 
     row.append(&name);
     row.append(&mime);
@@ -346,10 +351,10 @@ pub fn add_row_to_list(listbox: &ListBox, items: &Arc<Mutex<Vec<DropItem>>>, ite
             return;
         }
         gesture.set_state(EventSequenceState::Claimed);
-        if item2.mime_type != "text/uri-list" {
+        if item2.item.mime() != "text/uri-list" {
             return;
         }
-        if let Some(p) = File::for_uri(&item2.data).path() {
+        if let Some(p) = File::for_uri(item2.item.uri()).path() {
             if p.is_dir() {
                 if let Err(e) = navigate_into_dir(&listbox2, &items2, &p) {
                     error!("{}", e);
@@ -377,10 +382,10 @@ pub fn add_row_to_list(listbox: &ListBox, items: &Arc<Mutex<Vec<DropItem>>>, ite
             .collect();
         let all_uris = selected_items
             .iter()
-            .all(|i| i.mime_type == "text/uri-list");
+            .all(|i| i.item.mime() == "text/uri-list");
         let text = selected_items
             .iter()
-            .map(|i| i.data.clone())
+            .map(|i| i.item.uri().to_owned())
             .collect::<Vec<String>>()
             .join("\n");
         if all_uris {

@@ -1,15 +1,16 @@
+pub mod data;
 use std::{fs, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
 
+pub use crate::state::data::ItemData;
 use crate::{debug, error};
 
 /// Single item dragged into the list
 #[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
 pub struct DropItem {
     pub display_name: String,
-    pub data: String,
-    pub mime_type: String,
+    pub item: ItemData,
 }
 
 #[derive(Clone)]

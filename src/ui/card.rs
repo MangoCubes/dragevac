@@ -7,7 +7,7 @@ use gtk4::{
 };
 use std::sync::{Arc, Mutex};
 
-use crate::state::{DropItem, StateLocation};
+use crate::state::{DropItem, ItemData, StateLocation};
 use crate::{
     config::action::{Action, OnDrop},
     ui::add_row_to_list,
@@ -76,19 +76,19 @@ impl Card {
             let handle_dropped_items = move |drops: Vec<DropItem>| {
                 let uris = drops
                     .iter()
-                    .map(|i| i.data.clone())
+                    .map(|i| i.item.uri().to_string())
                     .collect::<Vec<String>>();
                 let uris_str = uris.join(&action_clone.concat);
                 let paths = drops
                     .iter()
                     .map(|i| {
-                        if i.mime_type == "text/uri-list" {
-                            File::for_uri(&i.data)
+                        if i.item.mime() == "text/uri-list" {
+                            File::for_uri(i.item.uri())
                                 .path()
                                 .map(|p| p.display().to_string())
-                                .unwrap_or_else(|| i.data.clone())
+                                .unwrap_or_else(|| i.item.uri().to_string())
                         } else {
-                            i.data.clone()
+                            i.item.uri().to_string()
                         }
                     })
                     .collect::<Vec<String>>();
@@ -207,8 +207,11 @@ impl Card {
                                         .basename()
                                         .map(|p| p.display().to_string())
                                         .unwrap_or_else(|| uri.clone()),
-                                    data: uri,
-                                    mime_type: "text/uri-list".to_string(),
+                                    item: if f.path().map_or(false, |p| p.is_dir()) {
+                                        ItemData::Dir(uri)
+                                    } else {
+                                        ItemData::File(uri)
+                                    },
                                 }
                             })
                             .collect();
