@@ -274,22 +274,31 @@ pub fn build_ui(
 fn list_dir(dir: &Path) -> Result<Vec<DropItem>, String> {
     match fs::read_dir(dir) {
         Err(e) => Err(format!("Failed to read directory {:?}: {}", dir, e)),
-        Ok(entries) => Ok(entries
-            .flatten()
-            .filter_map(|entry| {
-                let file = File::for_path(&fs::canonicalize(&entry.path()).ok()?);
-                let uri = file.uri().to_string();
-                let name = file
-                    .basename()
-                    .map(|b| b.display().to_string())
-                    .unwrap_or_else(|| uri.clone());
-                Some(DropItem {
-                    display_name: name,
-                    data: uri,
-                    mime_type: "text/uri-list".to_string(),
+        Ok(entries) => {
+            let mut items: Vec<DropItem> = entries
+                .flatten()
+                .filter_map(|entry| {
+                    let file = File::for_path(&fs::canonicalize(&entry.path()).ok()?);
+                    let uri = file.uri().to_string();
+                    let name = file
+                        .basename()
+                        .map(|b| b.display().to_string())
+                        .unwrap_or_else(|| uri.clone());
+                    Some(DropItem {
+                        display_name: name,
+                        data: uri,
+                        mime_type: "text/uri-list".to_string(),
+                    })
                 })
-            })
-            .collect()),
+                .collect();
+            items.sort_by(|a, b| {
+                let ad = File::for_uri(&a.data).path().map_or(false, |p| p.is_dir());
+                let bd = File::for_uri(&b.data).path().map_or(false, |p| p.is_dir());
+                bd.cmp(&ad)
+                    .then_with(|| a.display_name.cmp(&b.display_name))
+            });
+            Ok(items)
+        }
     }
 }
 
